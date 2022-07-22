@@ -1,0 +1,17 @@
+The bug is that DELETED is being treated as a property during the
+ORs.
+
+First gets set to FALSE, so we start ORing, but all the flags are
+zero.
+
+We need to replace the First BOOL with a state machine saying:
+
+   UNSET
+   SET_BY_DELETED
+   SET_BY_RESIDUE
+
+On UNSET or SET_BY_DELETED, we use =
+On SET_BY_RESIDUE,          we use |=
+
+
+
