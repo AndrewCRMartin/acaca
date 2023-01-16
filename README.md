@@ -15,7 +15,7 @@ Cluster analysis must provide the centre of the cluster, the dimensions of
 the cluster and the distance to the nearest other cluster such that new
 structures can be scanned against the clusters.
 
-Two programs:
+Three programs:
 
 ## CLAN - CLuster ANalysis
 
@@ -49,7 +49,7 @@ find which cluster (if any) it matches.
 Is run with the following syntax:
 
 ```
-        ficl datafile pdb startres lastres
+ficl datafile pdb startres lastres
 ```
 
 where:
@@ -60,3 +60,15 @@ where:
 FICL will pick up the cluster method from the output of CLAN
 
 CLAN *must* be run with TABLE and DATA switched on!
+
+
+## FindSDRs - Find structure determining (key) residues
+
+Takes the output of CLAN and identifies key residues for the clusters
+
+Is run with the following syntax:
+
+```
+findsdrs [-k] [clanfile [outfile]]
+```
+
