@@ -25,7 +25,6 @@ information on the clusters.
 
 Takes an input file of the following syntax:
 
-| ----------- | -------------------------- | ----------------------------------- |
 | Keyword     | Parameters                 | Details                             |
 | ----------- | -------------------------- | ----------------------------------- |
 | METHOD      | <clustering method>        | Ward, single, multiple, etc.        |
@@ -41,7 +40,6 @@ Takes an input file of the following syntax:
 | DATA        |                            | Show the data which is used for     |
 |             |                            | clustering                          |
 | POSTCLUSTER | <cutoff>                   | Specify RMS cutoff for post-cluster |
-| ----------- | -------------------------- | ----------------------------------- |
 
 The output file contains the METHOD, MAXLENGTH and SCHEME information as
 well as the clustering data which includes the centre and size of each
