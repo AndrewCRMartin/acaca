@@ -31,14 +31,10 @@ Takes an input file of the following syntax:
 | LOOP        | `pdb` `startres` `lastres` | Multiple records                    |
 | OUTPUT      | `outfile`                  | or stdout if not specified          |
 | MAXLENGTH   | `length`                   | Max length of a loop in analysis    |
-| SCHEME      | `insert-scheme`            | Order in which positions in the     |
-|             |                            | loop should be assigned from the    |
-|             |                            | actual loop i.e. where insertions   |
-|             |                            | should be considered                |
+| SCHEME      | `insert-scheme`            | Order in which positions in the loop should be assigned from the actual loop i.e. where insertions should be considered |
 | DENDOGRAM   |                            | Show the clustering tree dendogram  |
 | TABLE       |                            | Show the cluster table              |
-| DATA        |                            | Show the data which is used for     |
-|             |                            | clustering                          |
+| DATA        |                            | Show the data which is used for clustering |
 | POSTCLUSTER | `cutoff`                   | Specify RMS cutoff for post-cluster |
 
 The output file contains the METHOD, MAXLENGTH and SCHEME information as
@@ -55,13 +51,13 @@ find which cluster (if any) it matches.
 Is run with the following syntax:
 
 ```
-        ficl *datafile pdb startres lastres*
+        ficl datafile pdb startres lastres
 ```
 
 where:
 
 - `pdb startres lastres`    is the loop to be tested
-- `datafile`                    is the output file from CLAN
+- `datafile`                is the output file from CLAN
 
 FICL will pick up the cluster method from the output of CLAN
 
