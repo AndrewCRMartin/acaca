@@ -27,11 +27,11 @@ Takes an input file of the following syntax:
 
 | Keyword     | Parameters                 | Details                             |
 | ----------- | -------------------------- | ----------------------------------- |
-| METHOD      | <clustering method>        | Ward, single, multiple, etc.        |
-| LOOP        | <pdb> <startres> <lastres> | Multiple records                    |
-| OUTPUT      | <outfile>                  | or stdout if not specified          |
-| MAXLENGTH   | <length>                   | Max length of a loop in analysis    |
-| SCHEME      | <insert scheme>            | Order in which positions in the     |
+| METHOD      | `clustering-method`        | Ward, single, multiple, etc.        |
+| LOOP        | `pdb` `startres` `lastres` | Multiple records                    |
+| OUTPUT      | `outfile`                  | or stdout if not specified          |
+| MAXLENGTH   | `length`                   | Max length of a loop in analysis    |
+| SCHEME      | `insert-scheme`            | Order in which positions in the     |
 |             |                            | loop should be assigned from the    |
 |             |                            | actual loop i.e. where insertions   |
 |             |                            | should be considered                |
@@ -39,7 +39,7 @@ Takes an input file of the following syntax:
 | TABLE       |                            | Show the cluster table              |
 | DATA        |                            | Show the data which is used for     |
 |             |                            | clustering                          |
-| POSTCLUSTER | <cutoff>                   | Specify RMS cutoff for post-cluster |
+| POSTCLUSTER | `cutoff`                   | Specify RMS cutoff for post-cluster |
 
 The output file contains the METHOD, MAXLENGTH and SCHEME information as
 well as the clustering data which includes the centre and size of each
@@ -55,13 +55,13 @@ find which cluster (if any) it matches.
 Is run with the following syntax:
 
 ```
-        ficl <datafile> <pdb> <startres> <lastres>
+        ficl *datafile pdb startres lastres*
 ```
 
 where:
 
-- `<pdb> <startres> <lastres>`    is the loop to be tested
-- `<datafile>`                    is the output file from CLAN
+- `pdb startres lastres`    is the loop to be tested
+- `datafile`                    is the output file from CLAN
 
 FICL will pick up the cluster method from the output of CLAN
 
