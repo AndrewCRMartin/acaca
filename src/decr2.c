@@ -65,6 +65,7 @@
 #include "resprops.h"
 #include "bioplib/SysDefs.h"
 #include "bioplib/macros.h"
+#include "decr2.h"
 
 /************************************************************************/
 /* Defines and macros
@@ -82,7 +83,6 @@ char   sResArray[MAXPROPAA];     /* 1-letter codes in same order        */
 /************************************************************************/
 /* Prototypes
 */
-#include "decr2.p"
 
 
 /************************************************************************/

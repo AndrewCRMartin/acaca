@@ -1,27 +1,32 @@
-/*************************************************************************
+/************************************************************************/
+/**
 
-   Program:    
-   File:       parse.c
+   \file       parse.c
    
-   Version:    V1.9R
-   Date:       08.10.99
-   Function:   A keyword command parser
+   \version    V1.11
+   \date       07.07.14
+   \brief      A keyword command parser
    
-   Copyright:  (c) SciTech Software 1990-4
-   Author:     Dr. Andrew C. R. Martin
-   Address:    SciTech Software
-               23, Stag Leys,
-               Ashtead,
-               Surrey,
-               KT21 2TD.
-   Phone:      +44 (0) 1372 275775
-   EMail:      andrew@stagleys.demon.co.uk
+   \copyright  (c) UCL / Dr. Andrew C. R. Martin 1990-2014
+   \author     Dr. Andrew C. R. Martin
+   \par
+               Institute of Structural & Molecular Biology,
+               University College London,
+               Gower Street,
+               London.
+               WC1E 6BT.
+   \par
+               andrew@bioinf.org.uk
+               andrew.martin@ucl.ac.uk
                
 **************************************************************************
 
-   This program is not in the public domain, but it may be copied
+   This code is NOT IN THE PUBLIC DOMAIN, but it may be copied
    according to the conditions laid out in the accompanying file
-   COPYING.DOC
+   COPYING.DOC.
+
+   The code may be modified as required, but any modifications must be
+   documented so that the person responsible can be identified.
 
    The code may not be sold commercially or included as part of a 
    commercial product except as described in the file COPYING.DOC.
@@ -30,76 +35,126 @@
 
    Description:
    ============
-   parse() is a command line parser which will accept upper or
+
+   blParse() is a command line parser which will accept upper or
    lower case commands and abbreviations. Comment lines may be
    indicated using a !. The keyword structure array and returned
    string array are defined thus:
+\code
            KeyWd keywords[NCOMM];
            char  *strparam[MAXSTRPARAM];
+\endcode
+
    The returned REAL parameters are defined thus:
+\code
            REAL  floatparam[MAXFLOATPARAM];
+\endcode
+
    Space for the returned strings must be allocated thus:
+\code   
            strparam[n] = (char *)malloc(MAXSTRLEN * sizeof(char));
+\endcode
    and repeated for each parameter.
 
    The keyword list with type and numbers of returned parameters
    is constructed using the MAKEKEY macros:
+\code
            MAKEKEY(keywords[0],"RANGE",NUMBER,2);
            MAKEKEY(keywords[1],"STRING",STRING,1);
+\endcode
    Here, the keywords must be defined in upper case.
 
 
-   mparse() is used in the same way, but allows a variable number of
+   blMparse() is used in the same way, but allows a variable number of
    parameters for each keyword. Keywords are of type MKeyWd and are
    defined using the macro MAKEMKEY:
+\code
            MAKEMKEY(keywords[0],"RANGE",NUMBER,2,2);
            MAKEMKEY(keywords[1],"STRING",STRING,1,3);
+\endcode
 
 **************************************************************************
 
    Usage:
    ======
-   parse(comline,nkeys,keywords,floatparam,strparam)
-   Input:      char  *comline       A command line string to parse
-               int   nkeys          Number of keywords
-               KeyWd *keywords      Array of keyword structures
-   Output:     REAL  *floatparam    Array of returned strings
-               char  **strparam     Array of pointers to returned strings
-   Returns:    int                  Index of found command or error flag
 
-   mparse(comline,nkeys,keywords,floatparam,strparam,nparam)
-   Input:      char   *comline       A command line string to parse
-               int    nkeys          Number of keywords
-               MKeyWd *keywords      Array of keyword structures
-   Output:     REAL   *floatparam    Array of returned strings
-               char   **strparam     Array of pointers to returned strings
-               int    *nparam        Number of parameters found
-   Returns:    int                   Index of found command or error flag
+\code
+   blParse(comline,nkeys,keywords,floatparam,strparam)
+\endcode
+
+   \param[in]     *comline       A command line string to parse
+   \param[in]     nkeys          Number of keywords
+   \param[in]     *keywords      Array of keyword structures
+   \param[out]    *floatparam    Array of returned strings
+   \param[out]    **strparam     Array of pointers to returned strings
+   \return                          Index of found command or error flag
+
+\code
+   blMparse(comline,nkeys,keywords,floatparam,strparam,nparam)
+\endcode
+
+   \param[in]     *comline       A command line string to parse
+   \param[in]     nkeys          Number of keywords
+   \param[in]     *keywords      Array of keyword structures
+   \param[out]    *floatparam    Array of returned strings
+   \param[out]    **strparam     Array of pointers to returned strings
+   \param[out]    *nparam        Number of parameters found
+   \return                           Index of found command or error flag
 
 
 **************************************************************************
 
    Revision History:
    =================
-   V1.0  11.07.90 Original
-   V1.1  29.10.90 match() now frees the memory it allocates and calls
+-  V1.0  11.07.90 Original
+-  V1.1  29.10.90 match() now frees the memory it allocates and calls
                   terminate()
                   parse() now calls terminate() on the keyword string
-   V1.2  25.09.91 Messages will only appear from parse() if NOISY is
+-  V1.2  25.09.91 Messages will only appear from parse() if NOISY is
                   #defined.
                   Added FPU support.
-   V1.3  28.05.92 ANSIed and autodoc'd
-   V1.4  08.12.92 Includes stdlib.h
-   V1.5  22.04.93 Various tidying to exact ANSI standard and of function
+-  V1.3  28.05.92 ANSIed and autodoc'd
+-  V1.4  08.12.92 Includes stdlib.h
+-  V1.5  22.04.93 Various tidying to exact ANSI standard and of function
                   headers. Corrected some calls to free()
-   V1.6  16.06.93 Tidied for book
-   V1.7  01.03.94 Added mparse()
-   V1.8  11.03.94 Added internal support for lines starting with a $.
+-  V1.6  16.06.93 Tidied for book
+-  V1.7  01.03.94 Added mparse()
+-  V1.8  11.03.94 Added internal support for lines starting with a $.
                   The line is passed as a system() call and parse()
                   acts as if the line had been a comment.
-   V1.9  08.10.99 Initialised some variables
+-  V1.9  08.10.99 Initialised some variables
+-  V1.10 28.02.11 Added # as a comment introducer
+-  V1.11 07.07.14 Use bl prefix for functions By: CTP
 
 *************************************************************************/
+/* Doxygen
+   -------
+   #GROUP    General Programming
+   #SUBGROUP User interaction
+   #FUNCTION  blParse()
+   Keyword-based command parser using a fixed number of parameters per
+   command
+
+   #FUNCTION  blMparse()
+   As blParse(), but allows variable number of parameters to each keyword.
+
+
+
+   #SUBGROUP String handling
+
+   #FUNCTION  blMatch()
+   Matches two strings, but stops the comparison as soon
+   as a space or NULL is found in either string. The returned value
+
+   #FUNCTION  blGetString()
+   Returns the first space-delimited group of characters
+   from a character string
+
+   #FUNCTION  blGetParam()
+   Extracts the first space-delimited number from a
+   character string.
+*/
+/************************************************************************/
 /* Includes
 */
 #include <stdio.h>
@@ -122,33 +177,38 @@
 #define DIC 34       /* Double inverted commas                          */
 
 /************************************************************************/
-/*>int parse(char *comline, int nkeys, KeyWd *keywords,
-             REAL *floatparam, char **strparam)
+/*>int blParse(char *comline, int nkeys, KeyWd *keywords,
+               REAL *floatparam, char **strparam)
    ----------------------------------------------------
-   Input:      char  *comline       A command line string to parse
-               int   nkeys          Number of keywords
-               KeyWd *keywords      Array of keyword structures
-   Output:     REAL  *floatparam    Array of returned strings
-               char  **strparam     Array of pointers to returned strings
-   Returns:    int                  Index of found command or error flag
+*//**
 
-   Keyword-based command parser. Fixed number of parameters.
+   \param[in]     *comline       A command line string to parse
+   \param[in]     nkeys          Number of keywords
+   \param[in]     *keywords      Array of keyword structures
+   \param[out]    *floatparam    Array of returned strings
+   \param[out]    **strparam     Array of pointers to returned strings
+   \return                          Index of found command or error flag
 
-   11.07.90 Original    By: ACRM
-   22.04.93 Tidied comments, etc. Corrected NULL to 0.
-   11.03.94 Added $ line handling
-   08.10.99 Initialise nlett
+   Keyword-based command parser using a fixed number of parameters per
+   command
+
+-  11.07.90 Original    By: ACRM
+-  22.04.93 Tidied comments, etc. Corrected NULL to 0.
+-  11.03.94 Added $ line handling
+-  08.10.99 Initialise nlett
+-  28.02.11 Added # for comments
+-  07.07.14 Use bl prefix for functions By: CTP
 */
-int parse(char  *comline,
-          int   nkeys,
-          KeyWd *keywords,
-          REAL  *floatparam,
-          char  **strparam)
+int blParse(char  *comline,
+            int   nkeys,
+            KeyWd *keywords,
+            REAL  *floatparam,
+            char  **strparam)
 {
    char *command;
    int  i,n,found,nletters,nlett = 0;
 
-   command = KillLeadSpaces(comline);
+   command = blKillLeadSpaces(comline);
    TERMINATE(command);
 
    if(command[0] == '$')
@@ -158,9 +218,10 @@ int parse(char  *comline,
    }
    
    found = 0;
-   if((command[0]=='!') ||
-      (command[0]==LF)  ||
-      (command[0]==CR)  ||
+   if((command[0]=='!')  ||
+      (command[0]=='#')  ||
+      (command[0]==LF)   ||
+      (command[0]==CR)   ||
       (command[0]=='\0'))
       return(PARSE_COMMENT);
 
@@ -171,7 +232,7 @@ int parse(char  *comline,
                          0 if a mismatch
          We only want to act in the first case
       */
-      if((n=match(command,(keywords[i]).name,&nletters))==1)
+      if((n=blMatch(command,(keywords[i]).name,&nletters))==1)
       {
          if(found)      /* If found already                             */
          {
@@ -193,8 +254,8 @@ int parse(char  *comline,
    {
       for(i=0; i<(keywords[found]).nparam; i++)
       {
-         command = KillLeadSpaces(command);
-         if((nletters = GetString(command,strparam[i]))==0)
+         command = blKillLeadSpaces(command);
+         if((nletters = blGetString(command,strparam[i]))==0)
          {
             return(PARSE_ERRP);
          }
@@ -206,8 +267,8 @@ int parse(char  *comline,
       /* A numeric or no parameter                                      */
       for(i=0; i<(keywords[found]).nparam; i++)
       {
-         command = KillLeadSpaces(command);
-         if(!GetParam(command,&(floatparam[i]),&nletters))
+         command = blKillLeadSpaces(command);
+         if(!blGetParam(command,&(floatparam[i]),&nletters))
          {
             return(PARSE_ERRP);
          }
@@ -218,28 +279,31 @@ int parse(char  *comline,
 }
 
 /************************************************************************/
-/*>int match(char *comstring, char *string2, int *nletters)
-   --------------------------------------------------------
-   Input:      char  *comstring     A character string
-               char  *string2       A second string
-   Output:     int   *nletters      Number of letters matched
-   Returns:    int                  0 String mismatch
-                                    1 First string finished first
-                                    2 Second string finished first
+/*>int blMatch(char *comstring, char *string2, int *nletters)
+   ----------------------------------------------------------
+*//**
 
-   This routine matches two strings, but stops the comparison as soon
+   \param[in]     *comstring     A character string
+   \param[in]     *string2       A second string
+   \param[out]    *nletters      Number of letters matched
+   \return                       0 String mismatch
+                                 1 First string finished first
+                                 2 Second string finished first
+
+   Matches two strings, but stops the comparison as soon
    as a space or NULL is found in either string. The returned value
    indicates which string finished first or 0 if the letters before the
    space or NULL have a mismatch. The routine calls StringToUpper()
    on `comstring' before the comparison.
 
-   11.07.90 Original    By: ACRM
-   22.04.93 Tidied comments, etc. Added check on malloc and corrected
+-  11.07.90 Original    By: ACRM
+-  22.04.93 Tidied comments, etc. Added check on malloc and corrected
             calls to free()
+-  07.07.14 Use bl prefix for functions By: CTP
 */
-int match(char *comstring,
-          char *string2,
-          int  *nletters)
+int blMatch(char *comstring,
+            char *string2,
+            int  *nletters)
 {
    int  i;
    char *string1;
@@ -249,7 +313,7 @@ int match(char *comstring,
    string1 = (char *)malloc((strlen(comstring) + 2) * sizeof(char));
    if(string1 == NULL) return(0);
 
-   StringToUpper(comstring,string1);
+   blStringToUpper(comstring,string1);
 
    for(i=0;;i++)
    {
@@ -275,21 +339,24 @@ int match(char *comstring,
 }
 
 /************************************************************************/
-/*>int GetString(char *command, char *strparam)
-   --------------------------------------------
-   Input:      char  *command       A character string
-   Output:     char  *strparam      Returned character string
-   Returns:    int                  Number of characters pulled out
-                                    of the command string
+/*>int blGetString(char *command, char *strparam)
+   ----------------------------------------------
+*//**
 
-   This routine returns the first space-delimited group of characters
+   \param[in]     *command       A character string
+   \param[out]    *strparam      Returned character string
+   \return                       Number of characters pulled out
+                                 of the command string
+
+   Returns the first space-delimited group of characters
    from character string `command'
 
-   11.07.90 Original    By: ACRM
-   22.04.93 Tidied comments, etc. Changed toggle method
+-  11.07.90 Original    By: ACRM
+-  22.04.93 Tidied comments, etc. Changed toggle method
+-  07.07.14 Use bl prefix for functions By: CTP
 */
-int GetString(char *command,
-              char *strparam)
+int blGetString(char *command,
+                char *strparam)
 {
    int i,j,inv_commas;
 
@@ -324,29 +391,32 @@ int GetString(char *command,
 }
 
 /************************************************************************/
-/*>int GetParam(char *command, REAL *value, int *nletters)
-   -------------------------------------------------------
-   Input:      char  *command       A character string
-   Output:     REAL  *value         Returned float value
-               int   *nletters      Number of charcters pulled out
-                                    of the command string
-   Returns:    int                  0 If error
-                                    1 If OK
+/*>int blGetParam(char *command, REAL *value, int *nletters)
+   ---------------------------------------------------------
+*//**
 
-   This routine extracts the first space-delimited number from the
+   \param[in]     *command       A character string
+   \param[out]    *value         Returned float value
+   \param[out]    *nletters      Number of charcters pulled out
+                                 of the command string
+   \return                       0 If error
+                                 1 If OK
+
+   Extracts the first space-delimited number from the
    `command' character string.
 
-   11.07.90 Original    By: ACRM
-   22.04.93 Tidied comments, etc. Corrected NULL to 0
+-  11.07.90 Original    By: ACRM
+-  22.04.93 Tidied comments, etc. Corrected NULL to 0
+-  07.07.14 Use bl prefix for functions By: CTP
 */
-int GetParam(char  *command,
-             REAL  *value,
-             int   *nletters)
+int blGetParam(char  *command,
+               REAL  *value,
+               int   *nletters)
 {
    char buffer[50];
    int  retval;
 
-   if((*nletters = GetString(command,buffer))==0)
+   if((*nletters = blGetString(command,buffer))==0)
       return(0);
 
    retval = sscanf(buffer,"%lf",value);
@@ -354,34 +424,37 @@ int GetParam(char  *command,
 }
 
 /************************************************************************/
-/*>int mparse(char *comline, int nkeys, MKeyWd *keywords,
-              REAL *floatparam, char **strparam, int *nparam)
-   ----------------------------------------------------------
-   Input:      char   *comline       A command line string to parse
-               int    nkeys          Number of keywords
-               MKeyWd *keywords      Array of keyword structures
-   Output:     REAL   *floatparam    Array of returned strings
-               char   **strparam     Array of pointers to returned strings
-               int    *nparam        Number of parameters found
-   Returns:    int                   Index of found command or error flag
+/*>int blMparse(char *comline, int nkeys, MKeyWd *keywords,
+                REAL *floatparam, char **strparam, int *nparam)
+   ------------------------------------------------------------
+*//**
 
-   As parse(), but allows variable number of parameters to each keyword.
+   \param[in]     *comline       A command line string to parse
+   \param[in]     nkeys          Number of keywords
+   \param[in]     *keywords      Array of keyword structures
+   \param[out]    *floatparam    Array of returned strings
+   \param[out]    **strparam     Array of pointers to returned strings
+   \param[out]    *nparam        Number of parameters found
+   \return                           Index of found command or error flag
 
-   23.02.94 Original based on parse()   By: ACRM
-   11.03.94 Added $ line handling
-   08.10.99 Initialise nlett to 0
+   As blParse(), but allows variable number of parameters to each keyword.
+
+-  23.02.94 Original based on parse()   By: ACRM
+-  11.03.94 Added $ line handling
+-  08.10.99 Initialise nlett to 0
+-  07.07.14 Use bl prefix for functions By: CTP
 */
-int mparse(char   *comline,
-           int    nkeys,
-           MKeyWd *keywords,
-           REAL   *floatparam,
-           char   **strparam,
-           int    *nparam)
+int blMparse(char   *comline,
+             int    nkeys,
+             MKeyWd *keywords,
+             REAL   *floatparam,
+             char   **strparam,
+             int    *nparam)
 {
    char *command;
    int  i,n,found,nletters,nlett=0;
 
-   command = KillLeadSpaces(comline);
+   command = blKillLeadSpaces(comline);
    TERMINATE(command);
    
    if(command[0] == '$')
@@ -404,7 +477,7 @@ int mparse(char   *comline,
                          0 if a mismatch
          We only want to act in the first case
       */
-      if((n=match(command,(keywords[i]).name,&nletters))==1)
+      if((n=blMatch(command,(keywords[i]).name,&nletters))==1)
       {
          if(found)      /* If found already                             */
          {
@@ -430,8 +503,8 @@ int mparse(char   *comline,
    {
       for(i=0; i<(keywords[found]).maxparam; i++)
       {
-         command = KillLeadSpaces(command);
-         if((nletters = GetString(command,strparam[i]))==0)
+         command = blKillLeadSpaces(command);
+         if((nletters = blGetString(command,strparam[i]))==0)
          {
             if(i < (keywords[found]).minparam)
                return(PARSE_ERRP);
@@ -450,8 +523,8 @@ int mparse(char   *comline,
       /* A numeric or no parameter                                      */
       for(i=0; i<(keywords[found]).maxparam; i++)
       {
-         command = KillLeadSpaces(command);
-         if(!GetParam(command,&(floatparam[i]),&nletters))
+         command = blKillLeadSpaces(command);
+         if(!blGetParam(command,&(floatparam[i]),&nletters))
          {
             if(i < (keywords[found]).minparam)
                return(PARSE_ERRP);

@@ -1,23 +1,34 @@
 /* #define ALLOW_AXN */
-/*************************************************************************
+/************************************************************************/
+/**
 
-   Program:    
-   File:       hbond.c
+   \file       hbond.c
    
-   Version:    V1.5
-   Date:       17.01.06
-   Function:   Report whether two residues are H-bonded using
+   \version    V1.9
+   \date       14.08.18
+   \brief      Report whether two residues are H-bonded using
                Baker & Hubbard criteria
    
-   Copyright:  (c) SciTech Software 1996-2006
-   Author:     Dr. Andrew C. R. Martin
-   EMail:      andrew@bioinf.org.uk
+   \copyright  (c) UCL / Dr. Andrew C. R. Martin 1996-2018
+   \author     Dr. Andrew C. R. Martin
+   \par
+               Institute of Structural & Molecular Biology,
+               University College London,
+               Gower Street,
+               London.
+               WC1E 6BT.
+   \par
+               andrew@bioinf.org.uk
+               andrew.martin@ucl.ac.uk
                
 **************************************************************************
 
-   This program is not in the public domain, but it may be copied
+   This code is NOT IN THE PUBLIC DOMAIN, but it may be copied
    according to the conditions laid out in the accompanying file
-   COPYING.DOC
+   COPYING.DOC.
+
+   The code may be modified as required, but any modifications must be
+   documented so that the person responsible can be identified.
 
    The code may not be sold commercially or included as part of a 
    commercial product except as described in the file COPYING.DOC.
@@ -27,6 +38,7 @@
    Description:
    ============
 
+
 **************************************************************************
 
    Usage:
@@ -34,22 +46,57 @@
    NOTE, explicit hydrogens must be added to the PDB linked list before
    calling this routine.
 
-   The only external entry points are IsHBonded() and ValidHBond()
+   The only external entry points are blIsHBonded() and blValidHBond()
 
 **************************************************************************
 
    Revision History:
    =================
-   V1.0  26.01.96 Original    By: ACRM
-   V1.1  09.02.96 Added #ifdef'd code to allow AE1/AE2 AD1/AD2
-   V1.2  19.12.02 Fixed bug in walking over multiple H atoms
-   V1.3  18.08.05 Fixed bug relating to sidechains like GLN/ASN
-   V1.4  03.01.06 Proline backbone nitrogen cannot act as donor!
+-  V1.0  26.01.96 Original    By: ACRM
+-  V1.1  09.02.96 Added #ifdef'd code to allow AE1/AE2 AD1/AD2
+-  V1.2  19.12.02 Fixed bug in walking over multiple H atoms
+-  V1.3  18.08.05 Fixed bug relating to sidechains like GLN/ASN
+-  V1.4  03.01.06 Proline backbone nitrogen cannot act as donor!
                   Also incorporated fix in ValidHBond() from 02.06.99
                   Inpharmatica version to handle NULL antecedent atoms
-   V1.5  17.01.06 Added IsMCDonorHBonded() and IsMCAcceptorHBonded()
+-  V1.5  17.01.06 Added IsMCDonorHBonded() and IsMCAcceptorHBonded()
+-  V1.6  20.03.14 Updated message in Demo code. By: CTP
+-  V1.7  07.07.14 Use bl prefix for functions By: CTP
+-  V1.8  20.08.14 Added blSetMaxProteinHBondDADistance() 
+                  Added blFindHBond()
+                  By: ACRM
+-  V1.9  14.08.18 Fixed blListAllHBonds() such that it correctly returns
+                  a list of HBonds rather than just the first one it
+                  finds.
 
 *************************************************************************/
+/* Doxygen
+   -------
+   #GROUP    Handling PDB Data
+   #SUBGROUP Analyzing structures
+   #FUNCTION  blIsHBonded()
+   Determines whether 2 residues are H-bonded
+
+   #FUNCTION  blValidHBond()
+   Determines whether a set of atoms form a valid H-bond
+
+   #FUNCTION  blIsMCDonorHBonded()
+   Determines whether 2 residues are H-bonded with the first 
+   residue being a mainchain donor
+
+   #FUNCTION  blIsMCAcceptorHBonded()
+   Determines whether 2 residues are H-bonded with the first 
+   residue being a mainchain acceptor
+
+   #FUNCTION  blSetMaxProteinHBondDADistance()
+   Overrides the default maximum distance between donor and acceptor.
+   NOTE THIS IS NOT THREAD-SAFE
+
+   #FUNCTION blListAllHBonds()
+   Finds all HBonds between two specified residues
+
+*/
+/************************************************************************/
 /* Includes
 */
 #include <math.h>
@@ -68,12 +115,25 @@
 #define DADISTSQ (DADIST*DADIST)
 #define HADIST 2.5
 #define HADISTSQ (HADIST*HADIST)
+#define ALLOCHBLISTITEM do {            \
+           if(hblist == NULL) {         \
+              INIT(hblist, HBLIST);     \
+              hb = hblist;              \
+           } else {                     \
+              ALLOCNEXT(hb, HBLIST);    \
+           }                            \
+           if(hb == NULL) {             \
+              FREELIST(hblist, HBLIST); \
+              return(NULL);             \
+           }                            \
+           hb->next = NULL;             \
+        } while(0)
 
 
 /************************************************************************/
 /* Globals
 */
-
+static REAL sDADistSq = DADISTSQ;
 
 /************************************************************************/
 /* Prototypes
@@ -85,12 +145,14 @@ static BOOL FindSidechainDonor(PDB *res, PDB **AtomH, PDB **AtomD);
 
 
 /************************************************************************/
-/*>int IsHBonded(PDB *res1, PDB *res2, int type)
-   ---------------------------------------------
-   Input:   PDB  *res1     First residue
-            PDB  *res2     Second residue
-            int  type      HBond type to search for
-   Returns: int            HBond type found or 0 if none
+/*>int blIsHBonded(PDB *res1, PDB *res2, int type)
+   -----------------------------------------------
+*//**
+
+   \param[in]     *res1     First residue
+   \param[in]     *res2     Second residue
+   \param[in]     type      HBond type to search for
+   \return                  HBond type found or 0 if none
 
    Determines whether 2 residues are H-bonded using the crude criteria
    of Baker & Hubbard, 1984 (Prog. Biophys. & Mol. Biol, 44, 97-179)
@@ -103,24 +165,27 @@ static BOOL FindSidechainDonor(PDB *res, PDB **AtomH, PDB **AtomD);
    way for the two residues by ORing the appropriate flags in the type
    variable.
 
+
    The flags are:
-   HBOND_BACK1 (res1 b/b)
-   HBOND_BACK2 (res2 b/b)
-   HBOND_SIDE1 (res1 s/c)
-   HBOND_SIDE2 (res2 s/c)
+      HBOND_BACK1 (res1 b/b)
+      HBOND_BACK2 (res2 b/b)
+      HBOND_SIDE1 (res1 s/c)
+      HBOND_SIDE2 (res2 s/c)
+
 
    The most common flag combinations are already provided:
-   HBOND_BB         (b/b -- b/b)
-   HBOND_BS         (b/b -- s/c)
-   HBOND_SS         (s/c -- s/c)
-   HBOND_SB         (s/c -- b/b)
-   HBOND_SIDECHAIN  (s/c -- any)
-   HBOND_BACKBONE   (b/b -- any)
-   HBOND_ANY        (any -- any)
+      HBOND_BB         (b/b -- b/b)
+      HBOND_BS         (b/b -- s/c)
+      HBOND_SS         (s/c -- s/c)
+      HBOND_SB         (s/c -- b/b)
+      HBOND_SIDECHAIN  (s/c -- any)
+      HBOND_BACKBONE   (b/b -- any)
+      HBOND_ANY        (any -- any)
 
-   25.01.96 Original    By: ACRM
+-  25.01.96 Original    By: ACRM
+-  07.07.14 Use bl prefix for functions By: CTP
 */
-int IsHBonded(PDB *res1, PDB *res2, int type)
+int blIsHBonded(PDB *res1, PDB *res2, int type)
 {
    PDB *AtomH,              /* The hydrogen                             */
        *AtomD,              /* The hydrogen donor                       */
@@ -136,7 +201,7 @@ int IsHBonded(PDB *res1, PDB *res2, int type)
          {
             if(FindBackboneAcceptor(res2, &AtomA, &AtomP))
             {
-               if(ValidHBond(AtomH, AtomD, AtomA, AtomP))
+               if(blValidHBond(AtomH, AtomD, AtomA, AtomP))
                   return(HBOND_BACK1|HBOND_BACK2);
             }
          }
@@ -146,7 +211,7 @@ int IsHBonded(PDB *res1, PDB *res2, int type)
             FindSidechainAcceptor(NULL, NULL, NULL);
             while(FindSidechainAcceptor(res2, &AtomA, &AtomP))
             {
-               if(ValidHBond(AtomH, AtomD, AtomA, AtomP))
+               if(blValidHBond(AtomH, AtomD, AtomA, AtomP))
                   return(HBOND_BACK1|HBOND_SIDE2);
             }
          }
@@ -157,7 +222,7 @@ int IsHBonded(PDB *res1, PDB *res2, int type)
          {
             if(FindBackboneDonor(res2, &AtomH, &AtomD))
             {
-               if(ValidHBond(AtomH, AtomD, AtomA, AtomP))
+               if(blValidHBond(AtomH, AtomD, AtomA, AtomP))
                   return(HBOND_BACK1|HBOND_BACK2);
             }
          }
@@ -167,7 +232,7 @@ int IsHBonded(PDB *res1, PDB *res2, int type)
             FindSidechainDonor(NULL, NULL, NULL);
             while(FindSidechainDonor(res2, &AtomH, &AtomD))
             {
-               if(ValidHBond(AtomH, AtomD, AtomA, AtomP))
+               if(blValidHBond(AtomH, AtomD, AtomA, AtomP))
                   return(HBOND_BACK1|HBOND_SIDE2);
             }
          }
@@ -185,7 +250,7 @@ int IsHBonded(PDB *res1, PDB *res2, int type)
          {
             if(FindBackboneAcceptor(res2, &AtomA, &AtomP))
             {
-               if(ValidHBond(AtomH, AtomD, AtomA, AtomP))
+               if(blValidHBond(AtomH, AtomD, AtomA, AtomP))
                   return(HBOND_SIDE1|HBOND_BACK2);
             }
          }
@@ -195,7 +260,7 @@ int IsHBonded(PDB *res1, PDB *res2, int type)
             FindSidechainAcceptor(NULL, NULL, NULL);
             while(FindSidechainAcceptor(res2, &AtomA, &AtomP))
             {
-               if(ValidHBond(AtomH, AtomD, AtomA, AtomP))
+               if(blValidHBond(AtomH, AtomD, AtomA, AtomP))
                   return(HBOND_SIDE1|HBOND_SIDE2);
             }
          }
@@ -208,7 +273,7 @@ int IsHBonded(PDB *res1, PDB *res2, int type)
          {
             if(FindBackboneDonor(res2, &AtomH, &AtomD))
             {
-               if(ValidHBond(AtomH, AtomD, AtomA, AtomP))
+               if(blValidHBond(AtomH, AtomD, AtomA, AtomP))
                   return(HBOND_SIDE1|HBOND_BACK2);
             }
          }
@@ -218,7 +283,7 @@ int IsHBonded(PDB *res1, PDB *res2, int type)
             FindSidechainDonor(NULL, NULL, NULL);
             while(FindSidechainDonor(res2, &AtomH, &AtomD))
             {
-               if(ValidHBond(AtomH, AtomD, AtomA, AtomP))
+               if(blValidHBond(AtomH, AtomD, AtomA, AtomP))
                   return(HBOND_SIDE1|HBOND_SIDE2);
             }
          }
@@ -230,23 +295,27 @@ int IsHBonded(PDB *res1, PDB *res2, int type)
 
 
 /************************************************************************/
-/*>BOOL ValidHBond(PDB *AtomH, PDB *AtomD, PDB *AtomA, PDB *AtomP)
-   ---------------------------------------------------------------
-   Input:   PDB  *AtomH      The hydrogen
-            PDB  *AtomD      The donor (to which the H is attached)
-            PDB  *AtomA      The acceptor
-            PDB  *AtomP      The antecedent to the acceptor
-   Output:  BOOL             Valid?
+/*>BOOL blValidHBond(PDB *AtomH, PDB *AtomD, PDB *AtomA, PDB *AtomP)
+   -----------------------------------------------------------------
+*//**
+
+   \param[in]     *AtomH      The hydrogen
+   \param[in]     *AtomD      The donor (to which the H is attached)
+   \param[in]     *AtomA      The acceptor
+   \param[in]     *AtomP      The antecedent to the acceptor
+   \return                    Valid?
 
    Determines whether a set of atoms form a valid H-bond using the
    Baker and Hubbard criteria
 
-   25.01.96 Original    By: ACRM
-   02.06.99 Added NULL antecedent handling to allow calculation of
+-  25.01.96 Original    By: ACRM
+-  02.06.99 Added NULL antecedent handling to allow calculation of
             HBonds with missing antecedents. Previously AtomP==NULL
             was handled as an invalid HBond.
+-  07.07.14 Use bl prefix for functions By: CTP
+-  20.07.15 Changed DADISTSQ to sDADistSq  By: ACRM
 */
-BOOL ValidHBond(PDB *AtomH, PDB *AtomD, PDB *AtomA, PDB *AtomP)
+BOOL blValidHBond(PDB *AtomH, PDB *AtomD, PDB *AtomA, PDB *AtomP)
 {
    REAL ang1, ang2;
    
@@ -260,26 +329,26 @@ BOOL ValidHBond(PDB *AtomH, PDB *AtomD, PDB *AtomA, PDB *AtomP)
       /* If antecedent not defined then just check the distance         */
       if(AtomP==NULL)
       {
-         if(DISTSQ(AtomD, AtomA) < DADISTSQ)
+         if(DISTSQ(AtomD, AtomA) < sDADistSq)
             return(TRUE);
          else
             return(FALSE);
       }
 
-      ang1 = angle(AtomP->x, AtomP->y, AtomP->z,
-                   AtomA->x, AtomA->y, AtomA->z,
-                   AtomD->x, AtomD->y, AtomD->z);
+      ang1 = blAngle(AtomP->x, AtomP->y, AtomP->z,
+                     AtomA->x, AtomA->y, AtomA->z,
+                     AtomD->x, AtomD->y, AtomD->z);
 
-      if((DISTSQ(AtomD, AtomA) < DADISTSQ) &&
-         ang1 >= PI/2.0                    &&
+      if((DISTSQ(AtomD, AtomA) < sDADistSq) &&
+         ang1 >= PI/2.0                     &&
          ang1 <= PI)
          return(TRUE);
    }
    else
    {
-      ang2 = angle(AtomD->x, AtomD->y, AtomD->z,
-                   AtomH->x, AtomH->y, AtomH->z,
-                   AtomA->x, AtomA->y, AtomA->z);
+      ang2 = blAngle(AtomD->x, AtomD->y, AtomD->z,
+                     AtomH->x, AtomH->y, AtomH->z,
+                     AtomA->x, AtomA->y, AtomA->z);
 
       /* If the antecedent isn't defined then just set ang1 to within
          the allowed range
@@ -290,9 +359,9 @@ BOOL ValidHBond(PDB *AtomH, PDB *AtomD, PDB *AtomA, PDB *AtomP)
       }
       else
       {
-         ang1 = angle(AtomP->x, AtomP->y, AtomP->z,
-                      AtomA->x, AtomA->y, AtomA->z,
-                      AtomH->x, AtomH->y, AtomH->z);
+         ang1 = blAngle(AtomP->x, AtomP->y, AtomP->z,
+                        AtomA->x, AtomA->y, AtomA->z,
+                        AtomH->x, AtomH->y, AtomH->z);
       }
 
       if((DISTSQ(AtomH, AtomA) < HADISTSQ) &&
@@ -310,14 +379,17 @@ BOOL ValidHBond(PDB *AtomH, PDB *AtomD, PDB *AtomA, PDB *AtomP)
 /************************************************************************/
 /*>static BOOL FindBackboneAcceptor(PDB *res, PDB **AtomA, PDB **AtomP)
    --------------------------------------------------------------------
-   Input:   PDB  *res       Pointer to residue of interest
-   Output:  PDB  **AtomA    The acceptor atom
-            PDB  **AtomP    The antecedent (previous) atom
-   Returns: BOOL            Success?
+*//**
+
+   \param[in]     *res       Pointer to residue of interest
+   \param[out]    **AtomA    The acceptor atom
+   \param[out]    **AtomP    The antecedent (previous) atom
+   \return                    Success?
 
    Finds pointers to backbone acceptor atoms
 
-   25.01.96 Original    By: ACRM
+-  25.01.96 Original    By: ACRM
+-  07.07.14 Use bl prefix for functions By: CTP
 */
 static BOOL FindBackboneAcceptor(PDB *res, PDB **AtomA, PDB **AtomP)
 {
@@ -332,7 +404,7 @@ static BOOL FindBackboneAcceptor(PDB *res, PDB **AtomA, PDB **AtomP)
    *AtomA = NULL;
    *AtomP = NULL;
 
-   NextRes = FindNextResidue(res);
+   NextRes = blFindNextResidue(res);
    for(p=res; p!=NextRes; NEXT(p))
    {
       if(!strncmp(p->atnam,"O   ",4) ||
@@ -354,15 +426,18 @@ static BOOL FindBackboneAcceptor(PDB *res, PDB **AtomA, PDB **AtomP)
 /************************************************************************/
 /*>static BOOL FindBackboneDonor(PDB *res, PDB **AtomH, PDB **AtomD)
    -----------------------------------------------------------------
-   Input:   PDB  *res       Pointer to residue of interest
-   Output:  PDB  **AtomH    The hydrogen
-            PDB  **AtomD    The 'donor' atom
-   Returns: BOOL            Success?
+*//**
+
+   \param[in]     *res       Pointer to residue of interest
+   \param[out]    **AtomH    The hydrogen
+   \param[out]    **AtomD    The 'donor' atom
+   \return                    Success?
 
    Finds pointers to backbone donor atoms
 
-   25.01.96 Original    By: ACRM
-   03.01.06 Returns FALSE if this is a proline
+-  25.01.96 Original    By: ACRM
+-  03.01.06 Returns FALSE if this is a proline
+-  07.07.14 Use bl prefix for functions By: CTP
 */
 static BOOL FindBackboneDonor(PDB *res, PDB **AtomH, PDB **AtomD)
 {
@@ -377,7 +452,7 @@ static BOOL FindBackboneDonor(PDB *res, PDB **AtomH, PDB **AtomD)
    *AtomH = NULL;
    *AtomD = NULL;
 
-   NextRes = FindNextResidue(res);
+   NextRes = blFindNextResidue(res);
    for(p=res; p!=NextRes; NEXT(p))
    {
       if(!strncmp(p->atnam,"H   ",4))
@@ -396,21 +471,24 @@ static BOOL FindBackboneDonor(PDB *res, PDB **AtomH, PDB **AtomD)
 /************************************************************************/
 /*>static BOOL FindSidechainAcceptor(PDB *res, PDB **AtomA, PDB **AtomP)
    ---------------------------------------------------------------------
-   Input:   PDB  *res       Pointer to residue of interest
-   Output:  PDB  **AtomA    The acceptor atom
-            PDB  **AtomP    The antecedent (previous) atom
-   Returns: BOOL            Success?
+*//**
+
+   \param[in]     *res       Pointer to residue of interest
+   \param[out]    **AtomA    The acceptor atom
+   \param[out]    **AtomP    The antecedent (previous) atom
+   \return                    Success?
 
    Finds pointers to sidechain acceptor atoms. Each call will return
    a new set of atoms till all are found.
 
    Call with all parameters set to NULL before each new residue
 
-   25.01.96 Original    By: ACRM
-   09.02.96 Added #ifdef'd code to allow AE1/AE2 AD1/AD2
-   18.08.05 Fixed bug relating to sidechains like GLN/ASN - when finding
+-  25.01.96 Original    By: ACRM
+-  09.02.96 Added #ifdef'd code to allow AE1/AE2 AD1/AD2
+-  18.08.05 Fixed bug relating to sidechains like GLN/ASN - when finding
             the antecedent for the NE2 and ND2 atoms respectively, it
             would find OE1/OD1 rather than CD/CG. (See pprev code)
+-  07.07.14 Use bl prefix for functions By: CTP
 */
 static BOOL FindSidechainAcceptor(PDB *res, PDB **AtomA, PDB **AtomP)
 {
@@ -435,7 +513,7 @@ static BOOL FindSidechainAcceptor(PDB *res, PDB **AtomA, PDB **AtomP)
    {
       First   = FALSE;
       p       = res;
-      NextRes = FindNextResidue(res);
+      NextRes = blFindNextResidue(res);
    }
 
    for( ; p!=NextRes; NEXT(p))
@@ -479,23 +557,26 @@ static BOOL FindSidechainAcceptor(PDB *res, PDB **AtomA, PDB **AtomP)
 /************************************************************************/
 /*>static BOOL FindSidechainDonor(PDB *res, PDB **AtomH, PDB **AtomD)
    ------------------------------------------------------------------
-   Input:   PDB  *res       Pointer to residue of interest
-   Output:  PDB  **AtomH    The hydrogen
-            PDB  **AtomD    The 'donor' atom
-   Returns: BOOL            Success?
+*//**
+
+   \param[in]     *res       Pointer to residue of interest
+   \param[out]    **AtomH    The hydrogen
+   \param[out]    **AtomD    The 'donor' atom
+   \return                   Success?
 
    Finds pointers to sidechain donor atoms. Each call will return
    a new set of atoms till all are found.
 
    Call with all parameters set to NULL before each new residue
 
-   25.01.96 Original    By: ACRM
-   09.02.96 Added #ifdef'd code to allow AE1/AE2 AD1/AD2
-   19.12.02 Fixed bug in walking over multiple hydrogens. This fixes
+-  25.01.96 Original    By: ACRM
+-  09.02.96 Added #ifdef'd code to allow AE1/AE2 AD1/AD2
+-  19.12.02 Fixed bug in walking over multiple hydrogens. This fixes
             a problem when the last ATOM residue is a donor and is
             followed by only water (or mercury!) HETATMs
             Also fixed a bug where a lone residue occurs which appears
             to have just a hydrogen.
+-  07.07.14 Use bl prefix for functions By: CTP
 */
 static BOOL FindSidechainDonor(PDB *res, PDB **AtomH, PDB **AtomD)
 {
@@ -517,7 +598,7 @@ static BOOL FindSidechainDonor(PDB *res, PDB **AtomH, PDB **AtomD)
    {
       First   = FALSE;
       p       = res;
-      NextRes = FindNextResidue(res);
+      NextRes = blFindNextResidue(res);
    }
 
    for( ; p!=NextRes; NEXT(p))
@@ -567,13 +648,16 @@ static BOOL FindSidechainDonor(PDB *res, PDB **AtomH, PDB **AtomD)
    return(FALSE);
 }
 
+
 /************************************************************************/
-/*>int IsMCDonorHBonded(PDB *res1, PDB *res2, int type)
-   ----------------------------------------------------
-   Input:   PDB  *res1     First residue
-            PDB  *res2     Second residue
-            int  type      HBond type to search for
-   Returns: int            HBond type found or 0 if none
+/*>int blIsMCDonorHBonded(PDB *res1, PDB *res2, int type)
+   ------------------------------------------------------
+*//**
+
+   \param[in]     *res1     First residue
+   \param[in]     *res2     Second residue
+   \param[in]     type      HBond type to search for
+   \return                  HBond type found or 0 if none
 
    Determines whether 2 residues are H-bonded using the crude criteria
    of Baker & Hubbard, 1984 (Prog. Biophys. & Mol. Biol, 44, 97-179)
@@ -586,9 +670,10 @@ static BOOL FindSidechainDonor(PDB *res, PDB **AtomH, PDB **AtomD)
    HBOND_BACK2 or HBOND_SIDE2 depending whether the second residue
    (the acceptor) is backbond or sidechain
 
-   17.01.06 Original modified from IsHbonded()    By: ACRM
+-  17.01.06 Original modified from IsHbonded()    By: ACRM
+-  07.07.14 Use bl prefix for functions By: CTP
 */
-int IsMCDonorHBonded(PDB *res1, PDB *res2, int type)
+int blIsMCDonorHBonded(PDB *res1, PDB *res2, int type)
 {
    PDB *AtomH,              /* The hydrogen                             */
        *AtomD,              /* The hydrogen donor                       */
@@ -602,7 +687,7 @@ int IsMCDonorHBonded(PDB *res1, PDB *res2, int type)
       {
          if(FindBackboneAcceptor(res2, &AtomA, &AtomP))
          {
-            if(ValidHBond(AtomH, AtomD, AtomA, AtomP))
+            if(blValidHBond(AtomH, AtomD, AtomA, AtomP))
                return(HBOND_BACK2);
          }
       }
@@ -612,7 +697,7 @@ int IsMCDonorHBonded(PDB *res1, PDB *res2, int type)
          FindSidechainAcceptor(NULL, NULL, NULL);
          while(FindSidechainAcceptor(res2, &AtomA, &AtomP))
          {
-            if(ValidHBond(AtomH, AtomD, AtomA, AtomP))
+            if(blValidHBond(AtomH, AtomD, AtomA, AtomP))
                return(HBOND_SIDE2);
          }
       }
@@ -621,13 +706,16 @@ int IsMCDonorHBonded(PDB *res1, PDB *res2, int type)
    return(0);
 }
 
+
 /************************************************************************/
-/*>int IsMCAcceptorHBonded(PDB *res1, PDB *res2, int type)
-   -------------------------------------------------------
-   Input:   PDB  *res1     First residue
-            PDB  *res2     Second residue
-            int  type      HBond type to search for
-   Returns: int            HBond type found or 0 if none
+/*>int blIsMCAcceptorHBonded(PDB *res1, PDB *res2, int type)
+   ---------------------------------------------------------
+*//**
+
+   \param[in]     *res1     First residue
+   \param[in]     *res2     Second residue
+   \param[in]     type      HBond type to search for
+   \return                  HBond type found or 0 if none
 
    Determines whether 2 residues are H-bonded using the crude criteria
    of Baker & Hubbard, 1984 (Prog. Biophys. & Mol. Biol, 44, 97-179)
@@ -635,14 +723,15 @@ int IsMCDonorHBonded(PDB *res1, PDB *res2, int type)
    N.B. Explicit hydrogens must be added to the PDB linked list before
    calling this routine!
 
-   Searches for HBonds, in which the first residue is a mainchain donor
-   and the second residue is an acceptor. Type should be
+   Searches for HBonds, in which the first residue is a mainchain 
+   acceptor and the second residue is a donor. Type should be
    HBOND_BACK2 or HBOND_SIDE2 depending whether the second residue
    (the acceptor) is backbond or sidechain
 
-   17.01.06 Original    By: ACRM
+-  17.01.06 Original    By: ACRM
+-  07.07.14 Use bl prefix for functions By: CTP
 */
-int IsMCAcceptorHBonded(PDB *res1, PDB *res2, int type)
+int blIsMCAcceptorHBonded(PDB *res1, PDB *res2, int type)
 {
    PDB *AtomH,              /* The hydrogen                             */
        *AtomD,              /* The hydrogen donor                       */
@@ -656,7 +745,7 @@ int IsMCAcceptorHBonded(PDB *res1, PDB *res2, int type)
       {
          if(FindBackboneDonor(res2, &AtomH, &AtomD))
          {
-            if(ValidHBond(AtomH, AtomD, AtomA, AtomP))
+            if(blValidHBond(AtomH, AtomD, AtomA, AtomP))
                return(HBOND_BACK2);
          }
       }
@@ -666,7 +755,7 @@ int IsMCAcceptorHBonded(PDB *res1, PDB *res2, int type)
          FindSidechainDonor(NULL, NULL, NULL);
          while(FindSidechainDonor(res2, &AtomH, &AtomD))
          {
-            if(ValidHBond(AtomH, AtomD, AtomA, AtomP))
+            if(blValidHBond(AtomH, AtomD, AtomA, AtomP))
                return(HBOND_BACK1|HBOND_SIDE2);
          }
       }
@@ -676,8 +765,187 @@ int IsMCAcceptorHBonded(PDB *res1, PDB *res2, int type)
 }
 
 
+/************************************************************************/
+/*>void blSetMaxProteinHBondDADistance(REAL dist)
+   ----------------------------------------------
+*//**
+   \param[in]   dist    Distance
+
+   Wrapper to set the static variable for maximum D-A distance
+
+   16.06.99 Original   By: ACRM
+*/
+void blSetMaxProteinHBondDADistance(REAL dist)
+{
+   dist     *= dist;
+   sDADistSq = dist;
+}
 
 
+/************************************************************************/
+/*>HBLIST *blListAllHBonds(PDB *res1, PDB *res2)
+   ----------------------------------------------
+*//**
+   \param[in]   *res1    Pointer to first residue
+   \param[in]   *res2    Pointer to second residue
+   \return               Linked list of hydrogen bonds
+
+   Finds all HBonds between two specified residues
+
+-  20.07.15  Original   By: ACRM
+-  21.07.15  Corrected to blValidHBond()
+-  14.08.18  This was just returning one HBond rather than creating a 
+             list! Fixed...
+*/
+HBLIST *blListAllHBonds(PDB *res1, PDB *res2)
+{
+   PDB *AtomH,              /* The hydrogen                             */
+       *AtomD,              /* The hydrogen donor                       */
+       *AtomA,              /* The acceptor                             */
+       *AtomP;              /* The acceptor's antecedent                */
+   HBLIST *hblist = NULL,
+          *hb     = NULL;
+
+   int type = HBOND_ANY;
+
+   /* Find H-bonds involving the backbone of res1                       */
+   if(ISSET(type, HBOND_BACK1))
+   {
+      if(FindBackboneDonor(res1, &AtomH, &AtomD))
+      {
+         if(ISSET(type, HBOND_BACK2))
+         {
+            if(FindBackboneAcceptor(res2, &AtomA, &AtomP))
+            {
+               if(blValidHBond(AtomH, AtomD, AtomA, AtomP))
+               {
+                  ALLOCHBLISTITEM;
+                  hb->donor    = AtomD;
+                  hb->acceptor = AtomA;
+               }
+               
+            }
+         }
+
+         if(ISSET(type, HBOND_SIDE2))
+         {
+            /* Clear internal flags                                     */
+            FindSidechainAcceptor(NULL, NULL, NULL);
+            while(FindSidechainAcceptor(res2, &AtomA, &AtomP))
+            {
+               if(blValidHBond(AtomH, AtomD, AtomA, AtomP))
+               {
+                  ALLOCHBLISTITEM;
+                  hb->donor    = AtomD;
+                  hb->acceptor = AtomA;
+               }
+            }
+         }
+      }
+      if(FindBackboneAcceptor(res1, &AtomA, &AtomP))
+      {
+         if(ISSET(type, HBOND_BACK2))
+         {
+            if(FindBackboneDonor(res2, &AtomH, &AtomD))
+            {
+               if(blValidHBond(AtomH, AtomD, AtomA, AtomP))
+               {
+                  ALLOCHBLISTITEM;
+                  hb->donor    = AtomD;
+                  hb->acceptor = AtomA;
+               }
+            }
+         }
+
+         if(ISSET(type, HBOND_SIDE2))
+         {
+            /* Clear internal flags                                     */
+            FindSidechainDonor(NULL, NULL, NULL);
+            while(FindSidechainDonor(res2, &AtomH, &AtomD))
+            {
+               if(blValidHBond(AtomH, AtomD, AtomA, AtomP))
+               {
+                  ALLOCHBLISTITEM;
+                  hb->donor    = AtomD;
+                  hb->acceptor = AtomA;
+               }
+            }
+         }
+      }
+   }
+   
+   /* Find H-bonds involving sidechain of res1                          */
+   if(ISSET(type, HBOND_SIDE1))
+   {
+      /* Clear internal flags                                           */
+      FindSidechainDonor(NULL, NULL, NULL);
+      while(FindSidechainDonor(res1, &AtomH, &AtomD))
+      {
+         if(ISSET(type, HBOND_BACK2))
+         {
+            if(FindBackboneAcceptor(res2, &AtomA, &AtomP))
+            {
+               if(blValidHBond(AtomH, AtomD, AtomA, AtomP))
+               {
+                  ALLOCHBLISTITEM;
+                  hb->donor    = AtomD;
+                  hb->acceptor = AtomA;
+               }
+            }
+         }
+
+         if(ISSET(type, HBOND_SIDE2))
+         {
+            /* Clear internal flags                                     */
+            FindSidechainAcceptor(NULL, NULL, NULL);
+            while(FindSidechainAcceptor(res2, &AtomA, &AtomP))
+            {
+               if(blValidHBond(AtomH, AtomD, AtomA, AtomP))
+               {
+                  ALLOCHBLISTITEM;
+                  hb->donor    = AtomD;
+                  hb->acceptor = AtomA;
+               }
+            }
+         }
+      }
+
+      /* Clear internal flags                                           */
+      FindSidechainAcceptor(NULL, NULL, NULL);
+      while(FindSidechainAcceptor(res1, &AtomA, &AtomP))
+      {
+         if(ISSET(type, HBOND_BACK2))
+         {
+            if(FindBackboneDonor(res2, &AtomH, &AtomD))
+            {
+               if(blValidHBond(AtomH, AtomD, AtomA, AtomP))
+               {
+                  ALLOCHBLISTITEM;
+                  hb->donor    = AtomD;
+                  hb->acceptor = AtomA;
+               }
+            }
+         }
+
+         if(ISSET(type, HBOND_SIDE2))
+         {
+            /* Clear internal flags                                     */
+            FindSidechainDonor(NULL, NULL, NULL);
+            while(FindSidechainDonor(res2, &AtomH, &AtomD))
+            {
+               if(blValidHBond(AtomH, AtomD, AtomA, AtomP))
+               {
+                  ALLOCHBLISTITEM;
+                  hb->donor    = AtomD;
+                  hb->acceptor = AtomA;
+               }
+            }
+         }
+      }
+   }
+
+   return(hb);
+}
 
       
    
@@ -712,25 +980,25 @@ int main(int argc, char **argv)
    if((fp = fopen(argv[1],"r")))
    {
       /* Open the PGP file                                              */
-      if((pgp = OpenFile("Explicit.pgp","DATADIR","r",&noenv)))
+      if((pgp = blOpenFile("Explicit.pgp","DATADIR","r",&noenv)))
       {
          /* Read the PDB file                                           */
-         if((pdb  = ReadPDB(fp, &natom)))
+         if((pdb  = blReadPDB(fp, &natom)))
          {
             /* Add hydrogens                                            */
-            if((nhyd = HAddPDB(pgp, pdb)))
+            if((nhyd = blHAddPDB(pgp, pdb)))
             {
                /* Loop through each residue                             */
-               for(p=pdb; p!=NULL; p=FindNextResidue(p))
+               for(p=pdb; p!=NULL; p=blFindNextResidue(p))
                {
                   /* Loop through each following residue                */
-                  for(q=FindNextResidue(p); q!=NULL; q=FindNextResidue(q))
+                  for(q=blFindNextResidue(p); q!=NULL; q=blFindNextResidue(q))
                   {
                      /* Print message if there is any HBond             */
-                     if(IsHBonded(p, q, HBOND_ANY))
-                        printf("%c%d%c HBonded to %c%d%c\n",
-                               p->chain[0], p->resnum, p->insert[0],
-                               q->chain[0], q->resnum, q->insert[0]);
+                     if(blIsHBonded(p, q, HBOND_ANY))
+                        printf("%s%d%s HBonded to %s%d%s\n",
+                               p->chain, p->resnum, p->insert,
+                               q->chain, q->resnum, q->insert);
                   }
                }
             }

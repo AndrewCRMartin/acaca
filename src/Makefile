@@ -1,13 +1,13 @@
 CC       = cc
-COPT     = -g -Wall -ansi -I./bioplib -Wno-unused-but-set-variable
-PROTOIZE = $(HOME)/bin/ansi -p
+#COPT     = -g -Wall -ansi -I./bioplib -Wno-unused-but-set-variable
+COPT     = -O3 -Wall -ansi -I./bioplib -Wno-unused-but-set-variable
 
+EXE       = clan ficl getloops findsdrs
 CLANFILES = clan.o acaca.o decr.o decr2.o
 FICLFILES = ficl.o acaca.o
 GETLFILES = getloops.o
 FSDRFILES = FindSDRs.o decr2.o
 LIBS      = -lm 
-PFILES    = clan.p acaca.p ficl.p decr.p FindSDRs.p decr2.p
 HFILES    = acaca.h decr.h
 CBFILES   = bioplib/CalcRMSPDB.c       \
             bioplib/FindResidueSpec.c  \
@@ -89,7 +89,7 @@ SBFILES =   bioplib/hbond.c            \
 	    bioplib/ReadPDB.c          
 
 
-all : clan ficl getloops findsdrs
+all : $(EXE)
 
 .c.o : $(HFILES)
 	$(CC) $(COPT) -o $@ -c $<
@@ -110,9 +110,10 @@ findsdrs : $(FSDRFILES)
 
 
 clean :
-	rm -f $(CLANFILES) $(FICLFILES) $(GETLFILES) $(FSDRFILES)
+	\rm -f $(CLANFILES) $(FICLFILES) $(GETLFILES) $(FSDRFILES)
 
-protos : $(PFILES)
+install :
+	mkdir -p ../bin
+	cp $(EXE) ../bin
 
-.c.p :
-	$(PROTOIZE) $< $@
+

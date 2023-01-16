@@ -81,6 +81,8 @@
 #define MAIN
 #include "acaca.h"
 #include "decr.h"
+#include "decr2.h"
+#include "clan.h"
 
 
 /************************************************************************/
@@ -131,10 +133,6 @@ static int    sInfoLevel = 0;                  /* Info level            */
 /************************************************************************/
 /* Prototypes
 */
-#include "clan.p"
-#include "acaca.p"
-#include "decr.p"
-#include "decr2.p"
 
 
 /************************************************************************/
