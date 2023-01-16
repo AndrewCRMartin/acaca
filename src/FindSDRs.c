@@ -171,7 +171,7 @@
 #define CPCOMMAND       "cp"
 
 /* Command to create an access file from PDB                            */
-#define SOLVACC         "runasurf %s %s" 
+#define SOLVACC         "pdbsolv %s | pdbsumbval -a -q > %s" 
 
 /* Dir for temp files; may need to be a blank string                    */
 #define TEMPDIR         ""
