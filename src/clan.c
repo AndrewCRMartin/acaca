@@ -3,21 +3,20 @@
    Program:    clan
    File:       clan.c
    
-   Version:    V3.6
-   Date:       09.01.96
+   Version:    V3.8
+   Date:       16.01.23
    Function:   Perform cluster analysis on loop conformations
    
-   Copyright:  (c) Dr. Andrew C. R. Martin 1995-6
-   Author:     Dr. Andrew C. R. Martin
+   Copyright:  (c) UCL, Prof. Andrew C. R. Martin 1995-2023
+   Author:     Prof. Andrew C. R. Martin
    Address:    Biomolecular Structure & Modelling Unit,
                Department of Biochemistry & Molecular Biology,
                University College,
                Gower Street,
                London.
                WC1E 6BT.
-   Phone:      (Home) +44 (0)1372 275775
-               (Work) +44 (0)171 387 7050 X 3284
-   EMail:      martin@biochem.ucl.ac.uk
+   Phone:      +44 (0)207 679 7034
+   EMail:      andrew@bioinf.org.uk
                
 **************************************************************************
 
@@ -74,7 +73,7 @@
                   critical residues
    V3.7  14.03.96 Cluster merging now considers CB as well
    V3.7a 30.01.09 Compile cleanups
-   
+   V3.8  16.01.23 Fixed some bugs running under Linux
 
 *************************************************************************/
 /* Includes
@@ -2515,7 +2514,7 @@ only be done on CA, not CB\n");
                if(loop1->allatompdb == NULL || loop2->allatompdb == NULL)
                {
                   fprintf(stderr,"         You can solve this by using \
-the CRITICAL keyword.\n");
+the CRITICAL keyword *before* the LOOP specifications.\n");
                }
                Warned = TRUE;
             }
