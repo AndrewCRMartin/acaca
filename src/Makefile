@@ -1,5 +1,5 @@
 CC       = cc
-COPT     = -g -Wall -ansi -I./bioplib
+COPT     = -g -Wall -ansi -I./bioplib -Wno-unused-but-set-variable
 PROTOIZE = /home/bsm/martin/bin/ansi -p
 
 CLANFILES = clan.o acaca.o decr.o decr2.o
