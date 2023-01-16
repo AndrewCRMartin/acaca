@@ -17,8 +17,7 @@ structures can be scanned against the clusters.
 
 Two programs:
 
-1) CLAN - CLuster ANalysis
---------------------------
+## CLAN - CLuster ANalysis
 
 Performs cluster analysis on a loop in a set of PDB files. Generates
 information on the clusters.
@@ -42,8 +41,7 @@ well as the clustering data which includes the centre and size of each
 cluster and the distance to the nearest neighbouring cluster.
 
 
-2) FICL - FInd CLuster
-----------------------
+## FICL - FInd CLuster
 
 Takes a loop in a PDB file and matches it against a set of clusters to
 find which cluster (if any) it matches.
