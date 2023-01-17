@@ -148,8 +148,8 @@ BOOL GetLoop(char *filename, char *firstres, char *lastres)
    PDB  *pdb,    *p;
    int  res1,    res2,
         natoms;
-   char chain1,  chain2,
-        insert1, insert2,
+   char chain1[8],  chain2[8],
+        insert1[8], insert2[8],
         *outfile,
         namebuffer[MAXBUFF];
    BOOL InLoop = FALSE,
@@ -174,26 +174,26 @@ BOOL GetLoop(char *filename, char *firstres, char *lastres)
       return(FALSE);
    }
 
-   blParseResSpec(firstres, &chain1, &res1, &insert1);
-   blParseResSpec(lastres, &chain2, &res2, &insert2);
+   blParseResSpec(firstres, chain1, &res1, insert1);
+   blParseResSpec(lastres, chain2, &res2, insert2);
    
    for(p=pdb; p!=NULL; NEXT(p))
    {
       if((p->resnum    == res1) &&
-         (p->chain[0]  == chain1) &&
-         (p->insert[0] == insert1))
+         CHAINMATCH(p->chain, chain1) &&
+         INSERTMATCH(p->insert, insert1))
          InLoop = TRUE;
 
       if((p->resnum    == res2) &&
-         (p->chain[0]  == chain2) &&
-         (p->insert[0] == insert2))
+         CHAINMATCH(p->chain, chain2) &&
+         INSERTMATCH(p->insert, insert2))
          InLast = TRUE;
 
       if(InLast)
       {
          if((p->resnum    != res2) ||
-            (p->chain[0]  != chain2) ||
-            (p->insert[0] != insert2))
+            !CHAINMATCH(p->chain, chain2) ||
+            !CHAINMATCH(p->insert, insert2))
             InLoop = FALSE;
       }
       
@@ -208,7 +208,8 @@ BOOL GetLoop(char *filename, char *firstres, char *lastres)
 
    if(!InLast)
    {
-      fprintf(stderr,"%s skipped! Last residue (%s) not found\n",filename,lastres);
+      fprintf(stderr,"%s skipped! Last residue (%s) not found\n",
+              filename,lastres);
       unlink(namebuffer);
    }
    

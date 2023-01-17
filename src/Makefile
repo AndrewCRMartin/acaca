@@ -1,6 +1,6 @@
 CC       = cc
-COPT     = -g -Wall -ansi -I./bioplib -Wno-unused-but-set-variable -Wno-unused-function -Wno-stringop-truncation
-#COPT     = -O3 -Wall -ansi -I./bioplib -Wno-unused-but-set-variable -Wno-unused-function -Wno-stringop-truncation
+#COPT     = -g -Wall -ansi -I./bioplib -Wno-unused-but-set-variable -Wno-unused-function -Wno-stringop-truncation
+COPT     = -O3 -Wall -ansi -I./bioplib -Wno-unused-but-set-variable -Wno-unused-function -Wno-stringop-truncation
 
 EXE       = clan ficl getloops findsdrs
 CLANFILES = clan.o acaca.o decr.o decr2.o
