@@ -1,6 +1,6 @@
 CC       = cc
-#COPT     = -g -Wall -ansi -I./bioplib -Wno-unused-but-set-variable -Wno-unused-function Wstringop-truncation
-COPT     = -O3 -Wall -ansi -I./bioplib -Wno-unused-but-set-variable -Wno-unused-function Wstringop-truncation
+COPT     = -g -Wall -ansi -I./bioplib -Wno-unused-but-set-variable -Wno-unused-function -Wno-stringop-truncation
+#COPT     = -O3 -Wall -ansi -I./bioplib -Wno-unused-but-set-variable -Wno-unused-function -Wno-stringop-truncation
 
 EXE       = clan ficl getloops findsdrs
 CLANFILES = clan.o acaca.o decr.o decr2.o
@@ -51,6 +51,10 @@ CBFILES   = bioplib/CalcRMSPDB.o       \
             bioplib/FindResidue.o      \
             bioplib/fsscanf.o          \
             bioplib/chindex.o          \
+            bioplib/PDBHeaderInfo.o    \
+            bioplib/strcatalloc.o      \
+            bioplib/GetWord.o          \
+            bioplib/stringcat.o        \
             bioplib/TranslatePDB.o 
 
 FBFILES =   bioplib/array2.o           \
@@ -78,6 +82,9 @@ FBFILES =   bioplib/array2.o           \
             bioplib/PDB2Seq.o          \
             bioplib/throne.o           \
             bioplib/GetPDBChainLabels.o \
+            bioplib/PDBHeaderInfo.o    \
+            bioplib/strcatalloc.o      \
+            bioplib/stringcat.o        \
 	    bioplib/angle.o
 
 GBFILES =   bioplib/upstrncmp.o        \
@@ -100,6 +107,9 @@ GBFILES =   bioplib/upstrncmp.o        \
             bioplib/FreeStringList.o   \
             bioplib/BuildConect.o      \
             bioplib/array2.o           \
+            bioplib/PDBHeaderInfo.o    \
+            bioplib/strcatalloc.o      \
+            bioplib/stringcat.o        \
 	    bioplib/WritePDB.o
 
 SBFILES =   bioplib/hbond.o            \
@@ -128,6 +138,9 @@ SBFILES =   bioplib/hbond.o            \
             bioplib/stringutil.o       \
 	    bioplib/hash.o             \
 	    bioplib/prime.o            \
+            bioplib/PDBHeaderInfo.o    \
+            bioplib/strcatalloc.o      \
+            bioplib/stringcat.o        \
 	    bioplib/ReadPDB.o          
 
 all : $(EXE)

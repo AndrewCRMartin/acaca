@@ -68,3 +68,6 @@ cp $BIOPLIB/TranslatePDB.c      bioplib
 cp $BIOPLIB/upstrncmp.c         bioplib
 cp $BIOPLIB/VecDist.c           bioplib
 cp $BIOPLIB/WritePDB.c          bioplib
+cp $BIOPLIB/strcatalloc.c       bioplib
+cp $BIOPLIB/PDBHeaderInfo.c     bioplib
+cp $BIOPLIB/stringcat.c         bioplib
