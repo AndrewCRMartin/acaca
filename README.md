@@ -40,6 +40,16 @@ The output file contains the METHOD, MAXLENGTH and SCHEME information as
 well as the clustering data which includes the centre and size of each
 cluster and the distance to the nearest neighbouring cluster.
 
+## FindSDRs - Find structure determining (key) residues
+
+Takes the output of CLAN and identifies key residues for the clusters
+
+Is run with the following syntax:
+
+```
+findsdrs [-k] [clanfile [outfile]]
+```
+
 
 ## FICL - FInd CLuster
 
@@ -62,13 +72,17 @@ FICL will pick up the cluster method from the output of CLAN
 CLAN *must* be run with TABLE and DATA switched on!
 
 
-## FindSDRs - Find structure determining (key) residues
 
-Takes the output of CLAN and identifies key residues for the clusters
+------------------------------------------------------------------------
 
-Is run with the following syntax:
+## INSTALLATION
 
 ```
-findsdrs [-k] [clanfile [outfile]]
+cd src
+make
+make install
 ```
+
+This will install the executables in a `bin` directory under the main
+directory.
 
