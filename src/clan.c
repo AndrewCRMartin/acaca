@@ -371,7 +371,7 @@ BOOL DoCmdLoop(FILE *fp, BOOL CATorsions)
    {
       TERMINATE(buffer);
       
-      key = mparse(buffer, PARSER_NCOMM, sKeyWords, sRealParam,
+      key = blMparse(buffer, PARSER_NCOMM, sKeyWords, sRealParam,
                    sStrParam, &NParams);
 
       switch(key)
@@ -510,7 +510,7 @@ before all LOOP commands\n",sKeyWords[key].name);
       case KEY_EXCLUDE:
          sprintf(loopid,"%s-%s-%s",
                  sStrParam[0],sStrParam[1],sStrParam[2]);
-         if((gStringList=StoreString(gStringList, loopid))==NULL)
+         if((gStringList=blStoreString(gStringList, loopid))==NULL)
          {
             fprintf(stderr,"Error: No memory for string: %s\n", loopid);
             return(FALSE);
@@ -660,8 +660,8 @@ BOOL ShowClusters(FILE *fp, REAL **data, int NVec, int VecDim,
    }
 
    /* Free allocated memory                                             */
-   if(clusters != NULL) FreeArray2D((char **)clusters,NVec,VecDim);
-   if(out      != NULL) FreeArray2D((char **)out,lev*3,lev*3);
+   if(clusters != NULL) blFreeArray2D((char **)clusters,NVec,VecDim);
+   if(out      != NULL) blFreeArray2D((char **)out,lev*3,lev*3);
    if(ia       != NULL) free(ia);
    if(ib       != NULL) free(ib);
    if(iorder   != NULL) free(iorder);
@@ -1004,14 +1004,14 @@ int **ClusterAssign(FILE *fp, int NVec, int *ia, int *ib, REAL *crit,
    char     *loopid;
 
    /* Allocate memory                                                   */
-   clusters = (int **)Array2D(sizeof(int),NVec,lev);
+   clusters = (int **)blArray2D(sizeof(int),NVec,lev);
    hvals  = (int *)malloc((2+lev) * sizeof(int));
 
    /* Check allocations; free and return if failed                      */
    if(clusters==NULL || hvals==NULL)
    {
       if(clusters!=NULL)
-         FreeArray2D((char **)clusters, NVec, lev);
+         blFreeArray2D((char **)clusters, NVec, lev);
       if(hvals!=NULL)
          free(hvals);
       return(NULL);
@@ -1106,7 +1106,7 @@ int **ClusterAssign(FILE *fp, int NVec, int *ia, int *ib, REAL *crit,
       fprintf(fp,"     ------- --- --- --- --- --- --- --- --- ----\n");
       for(i=1,p=gDataList; i<=NVec && p!=NULL; i++, NEXT(p))
       {
-         loopid = FNam2PDB(p->loopid);
+         loopid = blFNam2PDB(p->loopid);
          
          if(loopid==NULL)
             fprintf(fp,"%11d",i);
@@ -1243,7 +1243,7 @@ char **ClusterDendogram(FILE *fp, int lev, int *iorder, int *height,
         ic, idum;
    char **out;
    
-   if((out = (char **)Array2D(sizeof(char),lev*3,lev*3))==NULL)
+   if((out = (char **)blArray2D(sizeof(char),lev*3,lev*3))==NULL)
    {
       return(NULL);
    }
@@ -1370,7 +1370,7 @@ BOOL DoClustering(BOOL CATorsions)
 
    retval = ShowClusters(gOutfp, data, NData, VecDim, 
                          gClusterMethod, gDoTable, gDoDendogram);
-   FreeArray2D((char **)data, NData, VecDim);
+   blFreeArray2D((char **)data, NData, VecDim);
 
    return(retval);
 }
@@ -1863,13 +1863,13 @@ REAL RmsPDB(PDB *pdb1, PDB *pdb2, int length)
    if(length)
    {
       /* Terminate each PDB linked list after length residues           */
-      end1 = TermPDB(pdb1, length);
-      end2 = TermPDB(pdb2, length);
+      end1 = blTermPDB(pdb1, length);
+      end2 = blTermPDB(pdb2, length);
    }
    
-   if(FitPDB(pdb1, pdb2, NULL))
+   if(blFitPDB(pdb1, pdb2, NULL))
    {
-      rms = CalcRMSPDB(pdb1, pdb2);
+      rms = blCalcRMSPDB(pdb1, pdb2);
    }
    else
    {
@@ -1927,24 +1927,24 @@ REAL RmsCAPDB(PDB *pdb1, PDB *pdb2, int length)
    if(length)
    {
       /* Terminate each PDB linked list after length residues           */
-      end1 = TermPDB(pdb1, length);
-      end2 = TermPDB(pdb2, length);
+      end1 = blTermPDB(pdb1, length);
+      end2 = blTermPDB(pdb2, length);
    }
 
-   if((pdbca1 = SelectAtomsPDB(pdb1, 1, sel, &natoms))==NULL)
+   if((pdbca1 = blSelectAtomsPDBAsCopy(pdb1, 1, sel, &natoms))==NULL)
       ok = FALSE;
-   if((pdbca2 = SelectAtomsPDB(pdb2, 1, sel, &natoms))==NULL)
+   if((pdbca2 = blSelectAtomsPDBAsCopy(pdb2, 1, sel, &natoms))==NULL)
       ok = FALSE;
    free(sel[0]);
 
    if(ok)
    {
-      if(!FitPDB(pdbca1, pdbca2, NULL))
+      if(!blFitPDB(pdbca1, pdbca2, NULL))
          ok = FALSE;
    }
 
    if(ok)
-      rms = CalcRMSPDB(pdbca1, pdbca2);
+      rms = blCalcRMSPDB(pdbca1, pdbca2);
 
    if(length)
    {
@@ -2002,11 +2002,11 @@ REAL MaxCADeviationPDB(PDB *pdb1, PDB *pdb2, int length)
    if(length)
    {
       /* Terminate each PDB linked list after length residues           */
-      end1 = TermPDB(pdb1, length);
-      end2 = TermPDB(pdb2, length);
+      end1 = blTermPDB(pdb1, length);
+      end2 = blTermPDB(pdb2, length);
    }
    
-   if(!FitCaPDB(pdb1, pdb2, NULL))
+   if(!blFitCaPDB(pdb1, pdb2, NULL))
       ok = FALSE;
 
    /* Check max CA deviation                                            */
@@ -2086,11 +2086,11 @@ REAL MaxCBDeviationPDB(PDB *pdb1, PDB *pdb2, int length)
    if(length)
    {
       /* Terminate each PDB linked list after length residues           */
-      end1 = TermPDB(pdb1, length);
-      end2 = TermPDB(pdb2, length);
+      end1 = blTermPDB(pdb1, length);
+      end2 = blTermPDB(pdb2, length);
    }
    
-   if(!FitCaPDB(pdb1, pdb2, NULL))
+   if(!blFitCaPDB(pdb1, pdb2, NULL))
       ok = FALSE;
 
    /* Check max CB deviation                                            */
@@ -2109,8 +2109,8 @@ REAL MaxCBDeviationPDB(PDB *pdb1, PDB *pdb2, int length)
                if(strncmp(p->resnam,"GLY ",4) && 
                   strncmp(q->resnam,"GLY ",4))
                {
-                  pcb=FindAtomInRes(p,"CB  ");
-                  qcb=FindAtomInRes(q,"CB  ");
+                  pcb=blFindAtomInRes(p,"CB  ");
+                  qcb=blFindAtomInRes(q,"CB  ");
 
                   if(pcb!=NULL && qcb!=NULL)
                   {
@@ -2479,21 +2479,21 @@ BOOL TestMerge(DATALIST *loop1, DATALIST *loop2, REAL *rms, REAL *CADev,
             the search for critical residues will fail since these
             routines move the loops in space 
          */
-         if((p=FindResidueSpec(loop1->allatompdb,loop1->start))!=NULL)
+         if((p=blFindResidueSpec(loop1->allatompdb,loop1->start))!=NULL)
          {
             /* Duplicate from the start res on                          */
-            if((dupe1 = DupePDB(p))!=NULL)
+            if((dupe1 = blDupePDB(p))!=NULL)
             {
-               if((end = TermPDB(dupe1, loop1->length + 1))!=NULL)
+               if((end = blTermPDB(dupe1, loop1->length + 1))!=NULL)
                   FREELIST(end,PDB);
             }
          }
-         if((p=FindResidueSpec(loop2->allatompdb,loop2->start))!=NULL)
+         if((p=blFindResidueSpec(loop2->allatompdb,loop2->start))!=NULL)
          {
             /* Duplicate from the start res on                          */
-            if((dupe2 = DupePDB(p))!=NULL)
+            if((dupe2 = blDupePDB(p))!=NULL)
             {
-               if((end = TermPDB(dupe2, loop2->length + 1))!=NULL)
+               if((end = blTermPDB(dupe2, loop2->length + 1))!=NULL)
                   FREELIST(end,PDB);
             }
          }
@@ -2754,17 +2754,17 @@ BOOL DefineCriticalResidues(FILE *fp, int *clusters, REAL **data,
                of the loop itself.
             */
             pdb       = p->allatompdb;
-            pdb_start = FindResidueSpec(pdb, p->start);
-            pdb_end   = FindResidueSpec(pdb, p->end);
+            pdb_start = blFindResidueSpec(pdb, p->start);
+            pdb_end   = blFindResidueSpec(pdb, p->end);
             if(pdb_end != NULL)
-               pdb_end   = FindNextResidue(pdb_end);
+               pdb_end   = blFindNextResidue(pdb_end);
             
             if(pdb_start != NULL)
             {
                /* If this loop is not in the list of loops to be ignored
                   in sequence template analysis
                */
-               if(!InStringList(gStringList, p->loopid))
+               if(!blInStringList(gStringList, p->loopid))
                {
                   /* Store the loop properties in the array             */
                   if(!FindNeighbourProps(pdb, pdb_start, pdb_end, clusnum,
@@ -2844,7 +2844,7 @@ file (%s)\n",p->start,p->loopid);
                   /* Find the PDB linked list for this example          */
                   for(j=0, p=gDataList; j<i && p!=NULL; j++, NEXT(p));
 
-                  if(!InStringList(gStringList, p->loopid))
+                  if(!blInStringList(gStringList, p->loopid))
                   {
                      /* Find PDB pointer for the structure.             */
                      pdb = p->allatompdb;

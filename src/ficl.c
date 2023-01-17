@@ -344,8 +344,8 @@ output\n");
    if(!ok)
    {
       if(data!=NULL)
-         FreeArray2D((char **)data, NLoops, 
-                     (MaxLen * 2 * (CATorsions ? 1 : 3)));
+         blFreeArray2D((char **)data, NLoops, 
+                       (MaxLen * 2 * (CATorsions ? 1 : 3)));
       data = NULL;
    }
       
@@ -386,7 +386,7 @@ BOOL ReadData(FILE *fp, REAL **data, int NLoops, int VecLength)
       {
          for(i=0, p=buffer; p!=NULL && i<VecLength; i++)
          {
-            p = GetWord(p,word,MAXBUFF);
+            p = blGetWord(p,word,MAXBUFF);
             if(!sscanf(word,"%lf",&(data[LoopCount][i])))
                return(FALSE);
          }
@@ -440,7 +440,7 @@ BOOL ReadHeader(FILE *fp, int *pMethod, int *pNLoops, int *pMaxLen)
       /* If in section, check for required data                         */
       if(InSection)
       {
-         p = GetWord(buffer,word,MAXBUFF);
+         p = blGetWord(buffer,word,MAXBUFF);
 
          if(!strncmp(word,"METHOD",6))
          {
@@ -462,7 +462,7 @@ BOOL ReadHeader(FILE *fp, int *pMethod, int *pNLoops, int *pMaxLen)
             /* Read the scheme out of the following values              */
             for(i=0;p!=NULL && i<MAXLOOPLEN;i++)
             {
-               p = GetWord(p,word,MAXBUFF);
+               p = blGetWord(p,word,MAXBUFF);
                sscanf(word,"%d",&(gScheme[i]));
             }
             gMaxLoopLen = i;
@@ -491,7 +491,7 @@ REAL **AllocateDataArrays(int NLoops, int VecLength, CLUSTER **ppClusters)
    REAL **data;
 
    /* Allocate and check 2D array                                       */
-   if((data = (REAL **)Array2D(sizeof(REAL),NLoops,VecLength))==NULL)
+   if((data = (REAL **)blArray2D(sizeof(REAL),NLoops,VecLength))==NULL)
    {
       fprintf(stderr,"No memory for data array.\n");
       return(NULL);
@@ -500,7 +500,7 @@ REAL **AllocateDataArrays(int NLoops, int VecLength, CLUSTER **ppClusters)
    /* Allocate memory for clusters                                      */
    if((*ppClusters = (CLUSTER *)malloc(NLoops * sizeof(CLUSTER)))==NULL)
    {
-      FreeArray2D((char **)data, NLoops, VecLength);
+      blFreeArray2D((char **)data, NLoops, VecLength);
       return(NULL);
    }
    
@@ -545,8 +545,8 @@ any of the existing\n");
 void CleanUp(REAL **data1, int NData1, int VecLen1, 
              REAL **data2, int NData2, int VecLen2)
 {
-   FreeArray2D((char **)data1, NData1, VecLen1);
-   FreeArray2D((char **)data2, NData2, VecLen2);
+   blFreeArray2D((char **)data1, NData1, VecLen1);
+   blFreeArray2D((char **)data2, NData2, VecLen2);
 }
 
 
@@ -614,9 +614,9 @@ of clusters\n");
          
          if(SecPos > 2)
          {
-            p = GetWord(p,(clusters[loopnum].loopid),MAXLOOPID);
+            p = blGetWord(p,(clusters[loopnum].loopid),MAXLOOPID);
             for(i=0; i<NClusters; i++)
-               p = GetWord(p,word,MAXBUFF);
+               p = blGetWord(p,word,MAXBUFF);
 
             sscanf(word,"%d",&(clusters[loopnum].clusnum));
          }
@@ -777,7 +777,7 @@ int ConfirmCluster(REAL **data, int NVec, int VecLen,
          return(0);
       }
       
-      DistMedian  = VecDist(vector, median, VecLen);
+      DistMedian  = blVecDist(vector, median, VecLen);
       free(median);
       median = NULL;
       
@@ -955,7 +955,7 @@ REAL MinDistInCluster(REAL **data, int NVec, int VecLen,
    {
       if(clusters[i].clusnum == ClusNum)
       {
-         dist = VecDist(vector,data[i],VecLen);
+         dist = blVecDist(vector,data[i],VecLen);
          if(dist < DMin)
             DMin = dist;
       }
@@ -1004,7 +1004,7 @@ int FindNearestMedian(REAL **data, int NVec, int VecLen,
    /* Find the nearest median                                           */
    for(i=0; i<NClusters; i++)
    {
-      if((dist = VecDist(vector, medians[i], VecLen)) < DMin)
+      if((dist = blVecDist(vector, medians[i], VecLen)) < DMin)
       {
          DMin    = dist;
          ClusNum = i+1;

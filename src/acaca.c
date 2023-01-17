@@ -94,21 +94,21 @@
 */
 BOOL SetClusterMethod(char *method)
 {
-   if(!upstrncmp(method,"WAR",3) || method[0] == '1')
+   if(!blUpstrncmp(method,"WAR",3) || method[0] == '1')
       gClusterMethod = 1;
-   else if(!upstrncmp(method,"SIN",3) || method[0] == '2')
+   else if(!blUpstrncmp(method,"SIN",3) || method[0] == '2')
       gClusterMethod = 2;
-   else if(!upstrncmp(method,"COM",3) || method[0] == '3')
+   else if(!blUpstrncmp(method,"COM",3) || method[0] == '3')
       gClusterMethod = 3;
-   else if(!upstrncmp(method,"AVE",3) || 
-           !upstrncmp(method,"GRO",3) || method[0] == '4')
+   else if(!blUpstrncmp(method,"AVE",3) || 
+           !blUpstrncmp(method,"GRO",3) || method[0] == '4')
       gClusterMethod = 4;
-   else if(!upstrncmp(method,"MCQ",3) || method[0] == '5')
+   else if(!blUpstrncmp(method,"MCQ",3) || method[0] == '5')
       gClusterMethod = 5;
-   else if(!upstrncmp(method,"MED",3) || 
-           !upstrncmp(method,"GOW",3) || method[0] == '6')
+   else if(!blUpstrncmp(method,"MED",3) || 
+           !blUpstrncmp(method,"GOW",3) || method[0] == '6')
       gClusterMethod = 6;
-   else if(!upstrncmp(method,"CEN",3) || method[0] == '7')
+   else if(!blUpstrncmp(method,"CEN",3) || method[0] == '7')
       gClusterMethod = 7;
    else
    {
@@ -198,7 +198,7 @@ BOOL HandleLoopSpec(char *filename, char *start, char *end,
    else
    {
       /* Read in the file                                               */
-      if((pdb=ReadPDBAtoms(fp,&natom))==NULL)
+      if((pdb=blReadPDBAtoms(fp,&natom))==NULL)
       {
          fprintf(stderr,"Unable to read atoms from file: %s\n",filename);
          retval = FALSE;
@@ -217,13 +217,13 @@ BOOL HandleLoopSpec(char *filename, char *start, char *end,
             (sel[2] != NULL))
          {
             /* Parse the resspecs for start and end                     */
-            ParseResSpec(start, &chain1, &resnum1, &insert1);
-            ParseResSpec(end,   &chain2, &resnum2, &insert2);
+            blParseResSpec(start, &chain1, &resnum1, &insert1);
+            blParseResSpec(end,   &chain2, &resnum2, &insert2);
                
             if(CATorsions)
             {
                /* Do CA-pseudo torsions                                 */
-               if((pdbca = SelectAtomsPDB(pdb, 1, sel, &natom))==NULL)
+               if((pdbca = blSelectAtomsPDBAsCopy(pdb, 1, sel, &natom))==NULL)
                {
                   fprintf(stderr,"Unable to select CA atoms\n");
                   retval = FALSE;
@@ -253,7 +253,7 @@ BOOL HandleLoopSpec(char *filename, char *start, char *end,
             }
             else    /* Do true torsions                                 */
             {
-               if((pdbca = SelectAtomsPDB(pdb, 3, sel, &natom))==NULL)
+               if((pdbca = blSelectAtomsPDBAsCopy(pdb, 3, sel, &natom))==NULL)
                {
                   fprintf(stderr,"Unable to select backbone atoms\n");
                   retval = FALSE;
@@ -486,15 +486,15 @@ torsions.\n");
       }
       
       /* Calculate torsion                                              */
-      p->torsions[i] = phi(p1->x, p1->y, p1->z,
-                           p2->x, p2->y, p2->z,
-                           p3->x, p3->y, p3->z,
-                           p4->x, p4->y, p4->z);
+      p->torsions[i] = blPhi(p1->x, p1->y, p1->z,
+                             p2->x, p2->y, p2->z,
+                             p3->x, p3->y, p3->z,
+                             p4->x, p4->y, p4->z);
 
       /* Calculate angle                                                */
-      p->angles[i] = angle(p1->x, p1->y, p1->z,
-                           p2->x, p2->y, p2->z,
-                           p3->x, p3->y, p3->z);
+      p->angles[i] = blAngle(p1->x, p1->y, p1->z,
+                             p2->x, p2->y, p2->z,
+                             p3->x, p3->y, p3->z);
 
       /* Update loop length when p3 is a CA (i.e. for the phi angle)    */
       if(!strncmp(p3->atnam,"CA  ",4))
@@ -679,7 +679,7 @@ REAL **ConvertData(DATALIST *indata, int *NData, BOOL CATorsions)
    ArrayDim = gMaxLoopLen * maxval;
 
    /* Allocate and check 2D array                                       */
-   if((data = (REAL **)Array2D(sizeof(REAL),*NData,ArrayDim))==NULL)
+   if((data = (REAL **)blArray2D(sizeof(REAL),*NData,ArrayDim))==NULL)
    {
       fprintf(stderr,"No memory for data array.\n");
       return(NULL);

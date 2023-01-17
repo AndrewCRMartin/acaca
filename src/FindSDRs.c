@@ -307,6 +307,7 @@ void FlagRogueClusters(int nclus, int nloops);
 BOOL IsRogue(int clus, int LargestClus);
 BOOL IsCisProline(CLUSINFO *ClusInfo, int clusnum, int resoffset, 
                   int nloops);
+static PDB *FindResidue1letter(PDB *pdb, char chain, int resnum, char insert);
 
 
 /************************************************************************/
@@ -328,7 +329,7 @@ int main(int argc, char **argv)
 
    if(ParseCmdLine(argc, argv, InFile, OutFile, &KeepSA))
    {
-      if(OpenStdFiles(InFile, OutFile, &in, &out))
+      if(blOpenStdFiles(InFile, OutFile, &in, &out))
       {
          if((nclus=ReadClanFile(in, &nloops))!=0)
          {
@@ -387,7 +388,7 @@ int ReadClanFile(FILE *in, int *NLoops)
 
    *NLoops = 0;
    
-   while((buffer=fgetsany(in))!=NULL)
+   while((buffer=blFgetsany(in))!=NULL)
    {
       if(nloops == 0)
       {
@@ -396,9 +397,9 @@ int ReadClanFile(FILE *in, int *NLoops)
             buffp = buffer;
             
             /* Pull out NLOOPS                                          */
-            buffp = GetWord(buffp,word,MAXWORD);
+            buffp = blGetWord(buffp,word,MAXWORD);
             /* Pull out the actual number                               */
-            buffp = GetWord(buffp,word,MAXWORD);
+            buffp = blGetWord(buffp,word,MAXWORD);
             if(!sscanf(word,"%d",&nloops) || nloops==0)
             {
                fprintf(stderr,"Unable to read NLOOPS from clan file\n");
@@ -430,11 +431,11 @@ int ReadClanFile(FILE *in, int *NLoops)
             buffp = buffer;
             
             /* Pull out BEGIN                                           */
-            buffp = GetWord(buffp,word,MAXWORD);
+            buffp = blGetWord(buffp,word,MAXWORD);
             /* Pull out CRITICALRESIDUES                                */
-            buffp = GetWord(buffp,word,MAXWORD);
+            buffp = blGetWord(buffp,word,MAXWORD);
             /* Pull out the actual number                               */
-            buffp = GetWord(buffp,word,MAXWORD);
+            buffp = blGetWord(buffp,word,MAXWORD);
             if(!sscanf(word,"%d",&nclus) || nclus==0)
             {
                fprintf(stderr,"Unable to read number of clusters from \
@@ -499,7 +500,7 @@ BOOL ReadAssignments(FILE *fp)
    int  i = 0;
    char *buffer;
    
-   while((buffer=fgetsany(fp))!=NULL)
+   while((buffer=blFgetsany(fp))!=NULL)
    {
       if(strstr(buffer,"END ASSIGNMENTS"))
          break;
@@ -793,7 +794,7 @@ BOOL ReadTemplates(FILE *in)
         count,
         nmembers;
    
-   while((buffer=fgetsany(in))!=NULL)
+   while((buffer=blFgetsany(in))!=NULL)
    {
       /* If we hit a CLUSTER record, extract clusnum, length, members   */
       if(strstr(buffer, "CLUSTER"))
@@ -1211,11 +1212,11 @@ BOOL IsInRange(char *resspec, char *firstres, char *lastres)
         insert, firstinsert, lastinsert;
    int  resnum, firstresnum, lastresnum;
    
-   if(ParseResSpec(resspec, &chain, &resnum, &insert))
+   if(blParseResSpec(resspec, &chain, &resnum, &insert))
    {
-      if(ParseResSpec(firstres, &firstchain, &firstresnum, &firstinsert))
+      if(blParseResSpec(firstres, &firstchain, &firstresnum, &firstinsert))
       {
-         if(ParseResSpec(lastres, &lastchain, &lastresnum, &lastinsert))
+         if(blParseResSpec(lastres, &lastchain, &lastresnum, &lastinsert))
          {
             /* If chains match                                          */
             if((chain     == firstchain) &&
@@ -1267,7 +1268,7 @@ PDB *ReadPDBAsSA(char *filename, BOOL KeepSAFile)
    char filestem[MAXBUFF],
         tempfile[MAXBUFF],
         safile[MAXBUFF],
-        buffer[MAXBUFF],
+        buffer[MAXBUFF*3],
         *ext;
    int  natom;
    BOOL SAExists  = FALSE,
@@ -1281,15 +1282,15 @@ PDB *ReadPDBAsSA(char *filename, BOOL KeepSAFile)
       ext--;
 
    /* Get the filestem out of the filename                              */
-   GetFilestem(filename, filestem);
+   blGetFilestem(filename, filestem);
    /* Create the name for the temp file                                 */
    sprintf(tempfile,"%s%s",TEMPDIR,filestem);
    strcpy(safile, tempfile);
    
    /* Append the .sa extension                                          */
-   SetExtn(safile,"sa");
+   blSetExtn(safile,"sa");
    /* Set the extension to that of the input file                       */
-   SetExtn(tempfile,ext);
+   blSetExtn(tempfile,ext);
 
    /* See if the filename specified is the same as what it would be
       if it's in TEMPDIR
@@ -1331,7 +1332,7 @@ accessibility file %s for reading\n", safile);
    }
    
    /* Read the SA file as PDB                                           */
-   if((pdb=ReadPDB(fp, &natom))==NULL)
+   if((pdb=blReadPDB(fp, &natom))==NULL)
    {
       fclose(fp);
       fprintf(stderr,"No atoms read from accessibility file: %s\n",
@@ -1385,7 +1386,7 @@ void MarkPartners(CLUSINFO *ClusInfo, PDB *pdb, PDB *res,
       if(!IsInRange(resspec, firstres, lastres))
       {
          /* Find this residue in the PDB linked list                    */
-         if((partner = FindResidue(pdb, 
+         if((partner = FindResidue1letter(pdb, 
                                    ClusInfo->chain[i],
                                    ClusInfo->resnum[i],
                                    ClusInfo->insert[i]))!=NULL)
@@ -1429,8 +1430,8 @@ BOOL MakeSCContact(PDB *res1, PDB *res2)
        *end2,
        *p, *q;
 
-   end1 = FindNextResidue(res1);
-   end2 = FindNextResidue(res2);
+   end1 = blFindNextResidue(res1);
+   end2 = blFindNextResidue(res2);
 
    for(p=res1; p!=end1; NEXT(p))
    {
@@ -1534,7 +1535,7 @@ accessibility file from %s\n",
                          gLoopClus[LoopNum].lastres))
             {
                /* Find this residue in the PDB linked list              */
-               if((res1 = FindResidue(pdb, 
+               if((res1 = FindResidue1letter(pdb, 
                                       ClusInfo->chain[i],
                                       ClusInfo->resnum[i],
                                       ClusInfo->insert[i]))!=NULL)
@@ -1683,7 +1684,7 @@ BOOL MarkHBonders(CLUSINFO *ClusInfo, int clusnum, int nloops)
          }
 
          /* Read the PDB file and close it                              */
-         if((pdb=ReadPDB(fp, &natom))==NULL)
+         if((pdb=blReadPDB(fp, &natom))==NULL)
          {
             fprintf(stderr,"No atoms read from PDB file: %s\n",
                     gLoopClus[LoopNum].filename);
@@ -1726,11 +1727,11 @@ BOOL MarkHBonders(CLUSINFO *ClusInfo, int clusnum, int nloops)
                   */
                   if(LoopResCount > 0)
                   {
-                     res1 = FindResidue(pdb, 
+                     res1 = FindResidue1letter(pdb, 
                                         ClusInfo->chain[i],
                                         ClusInfo->resnum[i],
                                         ClusInfo->insert[i]);
-                     res2 = FindResidue(pdb, 
+                     res2 = FindResidue1letter(pdb, 
                                         ClusInfo->chain[j],
                                         ClusInfo->resnum[j],
                                         ClusInfo->insert[j]);
@@ -1746,7 +1747,7 @@ BOOL MarkHBonders(CLUSINFO *ClusInfo, int clusnum, int nloops)
                            If the first makes a s/c HBond to the second, 
                            then increment its count
                         */
-                        if(IsHBonded(res1, res2, HBOND_SIDECHAIN))
+                        if(blIsHBonded(res1, res2, HBOND_SIDECHAIN))
                         {
                            (ClusInfo->count[i])++;
                            /* We now break out of the inner loop to stop
@@ -1764,7 +1765,7 @@ BOOL MarkHBonders(CLUSINFO *ClusInfo, int clusnum, int nloops)
                            If the first makes a s/c HBond to the second, 
                            then increment its count
                         */
-                        if(IsHBonded(res1, res2, HBOND_SB))
+                        if(blIsHBonded(res1, res2, HBOND_SB))
                         {
                            (ClusInfo->count[i])++;
                            /* We now break out of the inner loop to stop
@@ -1866,7 +1867,7 @@ BOOL FillSDRsForCluster(SDRLIST *sdrlist, int clusnum, int nloops)
          }
 
          /* Read the PDB file and close it                              */
-         if((pdb=ReadPDB(fp, &natom))==NULL)
+         if((pdb=blReadPDB(fp, &natom))==NULL)
          {
             fprintf(stderr,"No atoms read from PDB file: %s\n",
                     gLoopClus[LoopNum].filename);
@@ -1889,7 +1890,7 @@ BOOL FillSDRsForCluster(SDRLIST *sdrlist, int clusnum, int nloops)
                   /* See if it's in the list of observed residues and,
                      if not, add it.
                   */
-                  res = throne(p->resnam);
+                  res = blThrone(p->resnam);
                   TESTINARRAY(s->obsres, s->nobsres, res, Found);
                   if(!Found)
                      s->obsres[(s->nobsres)++] = res;
@@ -2667,7 +2668,7 @@ BOOL IsCisProline(CLUSINFO *ClusInfo, int clusnum, int resoffset,
          }
 
          /* Read the PDB file and close it                              */
-         if((pdb=ReadPDB(fp, &natom))==NULL)
+         if((pdb=blReadPDB(fp, &natom))==NULL)
          {
             fprintf(stderr,"No atoms read from PDB file: %s\n",
                     gLoopClus[LoopNum].filename);
@@ -2679,7 +2680,7 @@ BOOL IsCisProline(CLUSINFO *ClusInfo, int clusnum, int resoffset,
          /* Find the PDB pointer for the resoffset residue from the 
             ClusInfo structure
          */
-         ResPro = FindResidue(pdb,
+         ResPro = FindResidue1letter(pdb,
                               ClusInfo->chain[resoffset],
                               ClusInfo->resnum[resoffset],
                               ClusInfo->insert[resoffset]);
@@ -2688,13 +2689,13 @@ BOOL IsCisProline(CLUSINFO *ClusInfo, int clusnum, int resoffset,
             PDB linked list is not doubly linked
          */
          for(prev = pdb; prev->next != ResPro; NEXT(prev));
-         ResPrev = FindResidue(pdb,
+         ResPrev = FindResidue1letter(pdb,
                                prev->chain[0],
                                prev->resnum,
                                prev->insert[0]);
 
          /* Find the next residue                                       */
-         ResNext = FindNextResidue(ResPro);
+         ResNext = blFindNextResidue(ResPro);
 
          /* Find the atoms describing the omega torsion angle           */
          for(p=ResPrev; p!=ResPro; NEXT(p))
@@ -2723,10 +2724,10 @@ cis-proline in %s %c%d%c\n",
          }
          else
          {
-            angle = phi(CA1->x, CA1->y, CA1->z,
-                        C1->x,  C1->y,  C1->z,
-                        N2->x,  N2->y,  N2->z,
-                        CA2->x, CA2->y, CA2->z);
+            angle = blPhi(CA1->x, CA1->y, CA1->z,
+                          C1->x,  C1->y,  C1->z,
+                          N2->x,  N2->y,  N2->z,
+                          CA2->x, CA2->y, CA2->z);
             FREELIST(pdb, PDB);
             if((angle > (-PI/2.0)) && (angle < (PI/2.0)))
                return(TRUE);
@@ -2742,4 +2743,15 @@ cis-proline in %s %c%d%c\n",
    return(FALSE);
 }
 
+
+static PDB *FindResidue1letter(PDB *pdb, char chain, int resnum, char insert)
+{
+   char chain_a[2]  = " ",
+        insert_a[2] = " ";
+
+   chain_a[0]  = chain;
+   insert_a[0] = insert;
+
+   return(blFindResidue(pdb, chain_a, resnum, insert_a));
+}
 

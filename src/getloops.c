@@ -113,13 +113,13 @@ int main(int argc, char **argv)
    {
       TERMINATE(buffer);
 
-      if((p = GetWord(buffer,word,MAXBUFF))!=NULL)
+      if((p = blGetWord(buffer,word,MAXBUFF))!=NULL)
       {
-         if(!upstrncmp(word,"LOOP",4))
+         if(!blUpstrncmp(word,"LOOP",4))
          {
-            p = GetWord(p,filename,MAXBUFF);
-            p = GetWord(p,firstres,MAXRES);
-            p = GetWord(p,lastres,MAXRES);
+            p = blGetWord(p,filename,MAXBUFF);
+            p = blGetWord(p,firstres,MAXRES);
+            p = blGetWord(p,lastres,MAXRES);
             
             if(!GetLoop(filename,firstres,lastres))
             {
@@ -158,7 +158,7 @@ BOOL GetLoop(char *filename, char *firstres, char *lastres)
    if((fp=fopen(filename,"r")) == NULL)
       return(FALSE);
 
-   if((pdb=ReadPDBAtoms(fp, &natoms))==NULL)
+   if((pdb=blReadPDBAtoms(fp, &natoms))==NULL)
    {
       fclose(fp);
       return(FALSE);
@@ -174,8 +174,8 @@ BOOL GetLoop(char *filename, char *firstres, char *lastres)
       return(FALSE);
    }
 
-   ParseResSpec(firstres, &chain1, &res1, &insert1);
-   ParseResSpec(lastres, &chain2, &res2, &insert2);
+   blParseResSpec(firstres, &chain1, &res1, &insert1);
+   blParseResSpec(lastres, &chain2, &res2, &insert2);
    
    for(p=pdb; p!=NULL; NEXT(p))
    {
@@ -199,7 +199,7 @@ BOOL GetLoop(char *filename, char *firstres, char *lastres)
       
       if(InLoop)
       {
-         WritePDBRecord(fpout, p);
+         blWritePDBRecord(fpout, p);
       }
    }
 

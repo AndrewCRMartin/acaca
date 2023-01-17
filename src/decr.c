@@ -117,13 +117,13 @@ BOOL FindNeighbourProps(PDB *pdb, PDB *start, PDB *stop, int clusnum,
    for(p=start,looplen=0; p!=stop; p=p_next)
    {
       /* Find the following residue                                     */
-      p_next = FindEndPDB(p);
+      p_next = blFindNextResidue(p);
       looplen++;
 
       /* For each residue N-ter to the loop                             */
       for(q=pdb; q!=start && q!=NULL; q=q_next)
       {
-         q_next = FindEndPDB(q);
+         q_next = blFindNextResidue(q);
 
          /* If loop residue makes contact with this non-loop residue    */
          if(ResidueContact(p,p_next,q,q_next,CONTACTDIST))
@@ -150,7 +150,7 @@ BOOL FindNeighbourProps(PDB *pdb, PDB *start, PDB *stop, int clusnum,
       /* For each residue C-ter to the loop                             */
       for(q=stop; q!=NULL; q=q_next)
       {
-         q_next = FindEndPDB(q);
+         q_next = blFindNextResidue(q);
 
          /* If loop residue makes contact with this non-loop residue    */
          if(ResidueContact(p,p_next,q,q_next,CONTACTDIST))
@@ -191,7 +191,7 @@ BOOL FindNeighbourProps(PDB *pdb, PDB *start, PDB *stop, int clusnum,
    /* Copy residue pointers into this array                             */
    for(p=start,looplen=0; p!=stop; p=p_next)
    {
-      p_next = FindEndPDB(p);
+      p_next = blFindNextResidue(p);
       loopinfo->residues[looplen++] = p;
    }
 
@@ -317,13 +317,13 @@ void FillLoopInfo(LOOPINFO *loopinfo)
    
    for(i=0; i<loopinfo->length; i++)
    {
-      res = throne((loopinfo->residues[i])->resnam);
+      res = blThrone((loopinfo->residues[i])->resnam);
       loopinfo->AALoop[i] = res;
       loopinfo->ResProps[i] = SetProperties(res);
    }
    for(i=0; i<loopinfo->ncontacts; i++)
    {
-      res = throne((loopinfo->contacts[i])->resnam);
+      res = blThrone((loopinfo->contacts[i])->resnam);
       loopinfo->AAContact[i] = res;
       loopinfo->ContactProps[i] = SetProperties(res);
    }
@@ -515,7 +515,7 @@ MergeProperties() can't\n",clusnum);
                   /* This shouldn't happen!                             */
                   fprintf(stderr,"Cockup! Residue in loop %d flagged as \
 common but not in loop 0\n",i);
-                  WritePDBRecord(stderr,loopinfo[i].residues[j]);
+                  blWritePDBRecord(stderr,loopinfo[i].residues[j]);
                }
             }
          }
@@ -559,7 +559,7 @@ common but not in loop 0\n",i);
                   /* This shouldn't happen!                             */
                   fprintf(stderr,"Cockup! Residue in loop %d flagged as \
 common but not in loop 0\n",i);
-                  WritePDBRecord(stderr,loopinfo[i].contacts[j]);
+                  blWritePDBRecord(stderr,loopinfo[i].contacts[j]);
                }
             }
          }
@@ -1157,7 +1157,7 @@ BOOL MergeAllProperties(PDB *pdb,
                           p->resnum,
                           p->insert[0]))!=(-1))
          {
-            res = throne(p->resnam);
+            res = blThrone(p->resnam);
             
             clusterinfo->chain[k]          = p->chain[0];
             clusterinfo->resnum[k]         = p->resnum;
