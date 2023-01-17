@@ -3,21 +3,19 @@
    Program:    ficl
    File:       ficl.c
    
-   Version:    V3.6
-   Date:       09.01.96
+   Version:    V3.7
+   Date:       17.01.23
    Function:   Find the cluster into which a PDB loop fits
    
-   Copyright:  (c) Dr. Andrew C. R. Martin 1995-6
-   Author:     Dr. Andrew C. R. Martin
+   Copyright:  (c) Prof. Andrew C. R. Martin 1995-2023
+   Author:     Prof. Andrew C. R. Martin
    Address:    Biomolecular Structure & Modelling Unit,
                Department of Biochemistry & Molecular Biology,
                University College,
                Gower Street,
                London.
                WC1E 6BT.
-   Phone:      (Home) +44 (0)1372 275775
-               (Work) +44 (0)171 387 7050 X 3284
-   EMail:      INTERNET: martin@biochem.ucl.ac.uk
+   EMail:      andrew@bioinf.org.uk
                
 **************************************************************************
 
@@ -52,6 +50,7 @@
    V3.5  06.11.95 Skipped
    V3.6  09.01.96 Skipped
    V3.6a 30.01.09 Compile cleanups
+   V3.7  17.01.23 Updated for new bioplib
 
 *************************************************************************/
 /* Includes
@@ -63,7 +62,7 @@
 /************************************************************************/
 /* Defines and macros
 */
-#define HUGEBUFF 640
+#define HUGEBUFF 3600
 
 
 /************************************************************************/
@@ -75,14 +74,15 @@
 */
 int main(int argc, char **argv);
 BOOL ParseCmdLine(int argc, char **argv, char *datafile, char *pdbfile, 
-                  char *startres, char *lastres, BOOL *CATorsions,
+                  char *startres, char *lastres, 
                   BOOL *Verbose);
 REAL **ReadClusterFile(char *datafile, BOOL CATorsions, int *pMethod,
                        int *pNData, int *pVecLength, 
                        CLUSTER **ppClusters, int *NClusters,
                        CLUSTER **ppMedians,  int *NMedians);
 BOOL ReadData(FILE *fp, REAL **data, int NLoops, int VecLength);
-BOOL ReadHeader(FILE *fp, int *pMethod, int *pNLoops, int *pMaxLen);
+BOOL ReadHeader(FILE *fp, int *pMethod, int *pNLoops, int *pMaxLen,
+                BOOL *CATorsions);
 REAL **AllocateDataArrays(int NLoops, int VecLength, CLUSTER **ppClusters);
 void Usage(void);
 void CleanUp(REAL **data1, int NData1, int VecLen1,
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
            NClusters,
            VecLength,
            TheCluster;
-   BOOL    CATorsions = TRUE,
+   BOOL    CATorsions = FALSE,
            Error      = FALSE,
            Verbose    = FALSE;
    REAL    **data     = NULL,
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
    gOutfp = stdout;
 
    if(ParseCmdLine(argc, argv, datafile, pdbfile, startres, lastres, 
-                   &CATorsions, &Verbose))
+                   &Verbose))
    {
       if((data=ReadClusterFile(datafile, CATorsions, &method, 
                                &NData, &VecLength, 
@@ -203,23 +203,23 @@ int main(int argc, char **argv)
 /************************************************************************/
 /*>BOOL ParseCmdLine(int argc, char **argv, char *datafile, 
                      char *pdbfile, char *startres, char *lastres, 
-                     BOOL *CATorsions, BOOL *Verbose)
+                     BOOL *Verbose)
    ---------------------------------------------------------------
    Input:   int    argc         Argument count
             char   **argv       Argument array
    Output:  char   *datafile    Cluster data file
             char   *startres    Start residue spec
             char   *lastres     Last residue spec
-            BOOL   *CATorsions  Do CA torsions?
             BOOL   *Verbose     Print verbose information
    Returns: BOOL                Success?
 
    Parse the command line
    
    26.07.95 Original    By: ACRM
+   17.01.22 Removed -t flag
 */
 BOOL ParseCmdLine(int argc, char **argv, char *datafile, char *pdbfile, 
-                  char *startres, char *lastres, BOOL *CATorsions,
+                  char *startres, char *lastres,
                   BOOL *Verbose)
 {
    argc--;
@@ -229,16 +229,12 @@ BOOL ParseCmdLine(int argc, char **argv, char *datafile, char *pdbfile,
    pdbfile[0]  = '\0';
    startres[0] = '\0';
    lastres[0]  = '\0';
-   *CATorsions = TRUE;
 
    /* Handle the switches                                               */
    while(argc && argv[0][0] == '-')
    {
       switch(argv[0][1])
       {
-      case 't':
-         *CATorsions = FALSE;
-         break;
       case 'v':
          *Verbose = TRUE;
          break;
@@ -293,10 +289,14 @@ REAL **ReadClusterFile(char *datafile, BOOL CATorsions, int *pMethod,
       return(NULL);
    
    /* Read in the required header info                                  */
-   if(ReadHeader(fp, pMethod, &NLoops, &MaxLen))
+   if(ReadHeader(fp, pMethod, &NLoops, &MaxLen, &CATorsions))
    {
       *pNData     = NLoops;
       *pVecLength = MaxLen * 2 * (CATorsions ? 1 : 3);
+
+#ifdef DEBUG
+      printf("VecLen = %d\n", *pVecLength);
+#endif
 
       if((data=AllocateDataArrays(NLoops, *pVecLength, ppClusters))!=NULL)
       {
@@ -384,6 +384,13 @@ BOOL ReadData(FILE *fp, REAL **data, int NLoops, int VecLength)
       /* If in section, check for required data                         */
       if(InSection)
       {
+#ifdef DEBUG
+         printf("%2d : %ld : %s\n", LoopCount, strlen(buffer), buffer);
+#endif
+         if(strlen(buffer) >= HUGEBUFF-2)
+         {
+            fprintf(stderr,"Records are too long - increase HUGEBUFF\n");
+         }
          for(i=0, p=buffer; p!=NULL && i<VecLength; i++)
          {
             p = blGetWord(p,word,MAXBUFF);
@@ -405,15 +412,18 @@ BOOL ReadData(FILE *fp, REAL **data, int NLoops, int VecLength)
 
 
 /************************************************************************/
-/*>BOOL ReadHeader(FILE *fp, int *pMethod, int *pNLoops, int *pMaxLen)
+/*>BOOL ReadHeader(FILE *fp, int *pMethod, int *pNLoops, int *pMaxLen,
+                   BOOL *CATorsions)
    -------------------------------------------------------------------
    Read the HEADER section from the CLAN output file
 
    Returns: BOOL               Success?
 
    26.07.95 Original    By: ACRM
+   17.01.23 Added CATorsions
 */
-BOOL ReadHeader(FILE *fp, int *pMethod, int *pNLoops, int *pMaxLen)
+BOOL ReadHeader(FILE *fp, int *pMethod, int *pNLoops, int *pMaxLen,
+                BOOL *CATorsions)
 {
    char buffer[MAXBUFF],
         word[MAXBUFF],
@@ -426,6 +436,7 @@ BOOL ReadHeader(FILE *fp, int *pMethod, int *pNLoops, int *pMaxLen)
    int  i;
 
    rewind(fp);
+   *CATorsions = TRUE;
    
    while(fgets(buffer,MAXBUFF,fp))
    {
@@ -456,6 +467,10 @@ BOOL ReadHeader(FILE *fp, int *pMethod, int *pNLoops, int *pMaxLen)
          {
             if(sscanf(p,"%d",pMaxLen))
                GotLength = TRUE;
+         }
+         else if(!strncmp(word,"TRUETORSIONS",12))
+         {
+            *CATorsions = FALSE;
          }
          else if(!strncmp(word,"SCHEME",6))
          {
@@ -514,15 +529,14 @@ REAL **AllocateDataArrays(int NLoops, int VecLength, CLUSTER **ppClusters)
    Print a usage message
 
    26.07.95 Original    By: ACRM
+   17.01.22 Removed -t flag
 */
 void Usage(void)
 {
    fprintf(stderr,"\nficl (c) 1995 Dr. Andrew C.R. Martin, UCL\n");
 
-   fprintf(stderr,"\nUsage: ficl [-t] clusterfile pdbfile startres \
+   fprintf(stderr,"\nUsage: ficl clusterfile pdbfile startres \
 lastres\n");
-   fprintf(stderr,"       -t    Use true torsions rather than CA \
-pseudo-torsions\n");
 
    fprintf(stderr,"\nTakes the output from CLAN and compares a loop in \
 a PDB file with the\n");

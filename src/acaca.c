@@ -181,8 +181,8 @@ BOOL HandleLoopSpec(char *filename, char *start, char *end,
         *p_end;
    int  natom,
         resnum1, resnum2;
-   char chain1,  chain2, 
-        insert1, insert2;
+   char chain1[8],  chain2[8], 
+        insert1[8], insert2[8];
    char *sel[3];
    BOOL retval = TRUE;
 
@@ -217,8 +217,8 @@ BOOL HandleLoopSpec(char *filename, char *start, char *end,
             (sel[2] != NULL))
          {
             /* Parse the resspecs for start and end                     */
-            blParseResSpec(start, &chain1, &resnum1, &insert1);
-            blParseResSpec(end,   &chain2, &resnum2, &insert2);
+            blParseResSpec(start, chain1, &resnum1, insert1);
+            blParseResSpec(end,   chain2, &resnum2, insert2);
                
             if(CATorsions)
             {
@@ -232,10 +232,12 @@ BOOL HandleLoopSpec(char *filename, char *start, char *end,
                {
                   /* Find one back from the startres and 2 on from last 
                      res
+                     17.01.23 Should update this to take strings instead
+                     of characters [TODO]
                   */
                   if(!FindCAResidues(pdbca,
-                                     chain1,resnum1,insert1,
-                                     chain2,resnum2,insert2,
+                                     chain1[0],resnum1,insert1[0],
+                                     chain2[0],resnum2,insert2[0],
                                      &p_start,&p_end))
                   {
                      retval = FALSE;
@@ -260,9 +262,13 @@ BOOL HandleLoopSpec(char *filename, char *start, char *end,
                }
                else
                {
+                  /*
+                    17.01.23 Should update this to take strings instead
+                    of characters [TODO]
+                  */
                   if(!FindBBResidues(pdbca,
-                                     chain1,resnum1,insert1,
-                                     chain2,resnum2,insert2,
+                                     chain1[0],resnum1,insert1[0],
+                                     chain2[0],resnum2,insert2[0],
                                      &p_start,&p_end))
                   {
                      retval = FALSE;

@@ -937,11 +937,11 @@ BOOL HierClus(int NVec, int VecDim, int ClusterMethod, REAL **data,
    }  while(NClusters>1);
    /* Repeat previous steps until N-1 agglomerations carried out.       */
 
-   free(++DissimNearNeighb);
-   free(++LDDissim);
-   free(++membr);
-   free(++NearNeighb);
-   free(++Flag);
+   if(++DissimNearNeighb != NULL) free(DissimNearNeighb);
+   if(++LDDissim != NULL) free(LDDissim);
+   if(++membr != NULL) free(membr);
+   if(++NearNeighb != NULL) free(NearNeighb);
+   if(++Flag != NULL) free(Flag);
 
    data++;
    for(i=0; i<NVec; i++)

@@ -1208,19 +1208,19 @@ void FillOoiData(void)
 */
 BOOL IsInRange(char *resspec, char *firstres, char *lastres)
 {
-   char chain,  firstchain,  lastchain,
-        insert, firstinsert, lastinsert;
+   char chain[8],  firstchain[8],  lastchain[8],
+        insert[8], firstinsert[8], lastinsert[8];
    int  resnum, firstresnum, lastresnum;
    
-   if(blParseResSpec(resspec, &chain, &resnum, &insert))
+   if(blParseResSpec(resspec, chain, &resnum, insert))
    {
-      if(blParseResSpec(firstres, &firstchain, &firstresnum, &firstinsert))
+      if(blParseResSpec(firstres, firstchain, &firstresnum, firstinsert))
       {
-         if(blParseResSpec(lastres, &lastchain, &lastresnum, &lastinsert))
+         if(blParseResSpec(lastres, lastchain, &lastresnum, lastinsert))
          {
             /* If chains match                                          */
-            if((chain     == firstchain) &&
-               (lastchain == firstchain))
+            if(CHAINMATCH(chain, firstchain) &&
+               CHAINMATCH(lastchain, firstchain))
             {
                /* If residue number is *within* the range, return TRUE  */
                if((resnum > firstresnum) && (resnum < lastresnum))
@@ -1231,16 +1231,18 @@ BOOL IsInRange(char *resspec, char *firstres, char *lastres)
                */
                if((resnum == firstresnum) && (resnum == lastresnum))
                {
-                  if(((int)insert >= (int)firstinsert) &&
-                     ((int)insert <= (int)lastinsert))
+                  /* FIXME for strings */
+                  if(((int)insert[0] >= (int)firstinsert[0]) &&
+                     ((int)insert[0] <= (int)lastinsert[0]))
                      return(TRUE);
                }
 
                /* If residue number matches ends of range check insert  */
+               /* FIXME for strings */
                if(((resnum == firstresnum) && 
-                   ((int)insert >= (int)firstinsert)) ||
+                   ((int)insert[0] >= (int)firstinsert[0])) ||
                   ((resnum == lastresnum) && 
-                   ((int)insert <= (int)lastinsert)))
+                   ((int)insert[0] <= (int)lastinsert[0])))
                   return(TRUE);
             }
          }
