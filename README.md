@@ -24,17 +24,17 @@ information on the clusters.
 
 Takes an input file of the following syntax:
 
-| Keyword     | Parameters                 | Details                                    |
-| ----------- | -------------------------- | ------------------------------------------ |
-| METHOD      | `clustering-method`        | Ward, single, multiple, etc.               |
-| OUTPUT      | `outfile`                  | or stdout if not specified                 |
-| MAXLENGTH   | `length`                   | Max length of a loop in analysis           |
-| SCHEME      | `insert-scheme`            | Order in which positions in the loop should be assigned from the actual loop i.e. where insertions should be considered |
-| DENDOGRAM   |                            | Show the clustering tree dendogram         |
-| TABLE       |                            | Show the cluster table                     |
-| DATA        |                            | Show the data which is used for clustering |
-| POSTCLUSTER | `cutoff`                   | Specify RMS cutoff for post-cluster        |
-| LOOP        | `pdb` `startres` `lastres` | Multiple records (must come last)          |
+| Keyword     | Parameters                   | Details                                    |
+| ----------- | ---------------------------- | ------------------------------------------ |
+| METHOD      | `clustering-method`          | Ward, single, multiple, etc.               |
+| OUTPUT      | `outfile`                    | or stdout if not specified                 |
+| MAXLENGTH   | `length`                     | Max length of a loop in analysis           |
+| SCHEME      | `insert-scheme`              | Order in which positions in the loop should be assigned from the actual loop i.e. where insertions should be considered |
+| DENDOGRAM   |                              | Show the clustering tree dendogram         |
+| TABLE       |                              | Show the cluster table                     |
+| DATA        |                              | Show the data which is used for clustering |
+| POSTCLUSTER | `cutoff` [`maxca` [`maxcb`]] | Specify RMSD cutoff, maximum C-alpha distance and maximum C-beta distance for post-cluster merging [1.0, 1.5, 1.9]      |
+| LOOP        | `pdb` `startres` `lastres`   | Multiple records (must come last)          |
 
 The output file contains the METHOD, MAXLENGTH and SCHEME information as
 well as the clustering data which includes the centre and size of each
