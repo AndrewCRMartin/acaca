@@ -170,7 +170,6 @@ BOOL GetLoop(char *filename, char *firstres, char *lastres)
    if((fpout=fopen(namebuffer,"w")) == NULL)
    {
       FREELIST(pdb, PDB);
-      fclose(fp);
       return(FALSE);
    }
 
