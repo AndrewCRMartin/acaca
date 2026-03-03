@@ -46,21 +46,13 @@
    Program:    FindSDRs
    File:       FindSDRs.c
    
-   Version:    V1.0
-   Date:       02.02.96
+   Version:    V1.1
+   Date:       03.03.26
    Function:   Find SDRs in a set of loops
    
-   Copyright:  (c) Dr. Andrew C. R. Martin 1996
-   Author:     Dr. Andrew C. R. Martin
-   Address:    Biomolecular Structure & Modelling Unit,
-               Department of Biochemistry & Molecular Biology,
-               University College,
-               Gower Street,
-               London.
-               WC1E 6BT.
-   Phone:      (Home) +44 (0)1372 275775
-               (Work) +44 (0)171 419 3890
-   EMail:      INTERNET: martin@biochem.ucl.ac.uk
+   Copyright:  (c) UCL, Dr. Andrew C. R. Martin 1996-2026
+   Author:     Prof. Andrew C. R. Martin
+   EMail:      andrew.martin@abysis.org
                
 **************************************************************************
 
@@ -127,6 +119,8 @@
    V1.0  29.04.96 Finds rogues when parent isn't the largest cluster
                   of a given length
    V1.0a 30.01.09 Compile cleanups
+   V1.1  03.03.26 Reports [conserved] in lower case if this is not a
+                  reason for a residue being key
 
 *************************************************************************/
 /* Includes
@@ -668,11 +662,12 @@ BOOL ParseCmdLine(int argc, char **argv, char *infile, char *outfile,
    Prints a usage message
 
    02.02.96 Original   By: ACRM
+   03.03.26 V1.1
 */
 void Usage(void)
 {
-   fprintf(stderr,"\nFindSDRs V1.0 (c) 1996, Dr. Andrew C.R. Martin, \
-UCL\n");
+   fprintf(stderr,"\nFindSDRs V1.1 (c) 1996-2026, UCL, abYsis Ltd., \
+Prof. Andrew C.R. Martin\n");
 
    fprintf(stderr,"\nUsage: findsdrs [-k] [clanfile [outfile]]\n");
    fprintf(stderr,"       -k  Keep any generated SA files\n");
@@ -1036,7 +1031,11 @@ void ReportSDRs(FILE *out, int nclus)
             
             if(gClusInfo[i].absolute[j])
             {
-               fprintf(out," [CONSERVED] (%c)",gClusInfo[i].ConsRes[j]);
+               /* 03.03.26 Added this check for lower case              */
+               if(gClusInfo[i].NMembers >= MINABSCONS)
+                  fprintf(out," [CONSERVED] (%c)",gClusInfo[i].ConsRes[j]);
+               else
+                  fprintf(out," [conserved] (%c)",gClusInfo[i].ConsRes[j]);
             }
             else
             {
